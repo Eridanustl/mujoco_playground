@@ -39,6 +39,7 @@ from mujoco_playground import wrapper
 from mujoco_playground.config import dm_control_suite_params
 from mujoco_playground.config import locomotion_params
 from mujoco_playground.config import manipulation_params
+
 try:
   import tensorboardX
 except ImportError:
@@ -174,7 +175,8 @@ _TRAINING_METRICS_STEPS = flags.DEFINE_integer(
     " experiences slowdown.",
 )
 _WARP_KERNEL_CACHE_DIR = flags.DEFINE_string(
-    "warp_kernel_cache_dir", None,
+    "warp_kernel_cache_dir",
+    None,
     "Directory for caching compiled Warp kernels.",
 )
 
@@ -221,6 +223,7 @@ def main(argv):
 
   if _WARP_KERNEL_CACHE_DIR.value is not None:
     import warp as wp  # pylint: disable=g-import-not-at-top
+
     wp.config.kernel_cache_dir = _WARP_KERNEL_CACHE_DIR.value
 
   # Load environment configuration
@@ -317,8 +320,7 @@ def main(argv):
   if _USE_WANDB.value and not _PLAY_ONLY.value:
     if wandb is None:
       raise ImportError(
-          "wandb is required for --use_wandb. "
-          "Install via: pip install wandb"
+          "wandb is required for --use_wandb. Install via: pip install wandb"
       )
     wandb.init(project="mjxrl", name=exp_name)
     wandb.config.update(env_cfg.to_dict())
@@ -408,7 +410,7 @@ def main(argv):
       for key, value in metrics.items():
         writer.add_scalar(key, value, num_steps)
       writer.flush()
-    if _RUN_EVALS.value:
+    if _RUN_EVALS.value and "eval/episode_reward" in metrics:
       print(f"{num_steps}: reward={metrics['eval/episode_reward']:.3f}")
     if _LOG_TRAINING_METRICS.value:
       if "episode/sum_reward" in metrics:
@@ -476,7 +478,8 @@ def main(argv):
   jit_inference_fn = jax.jit(inference_fn)
 
   # For inference rollouts, create env with vision disabled.
-  env_cfg.vision_config.nworld = _NUM_VIDEOS.value
+  if _VISION.value:
+    env_cfg.vision_config.nworld = _NUM_VIDEOS.value
   infer_env = registry.load(
       _ENV_NAME.value, config=env_cfg, config_overrides=env_cfg_overrides
   )
