@@ -13,6 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 """Module for manipulation environments."""
+
 from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 import jax
@@ -27,6 +28,7 @@ from mujoco_playground._src.manipulation.franka_emika_panda import pick as panda
 from mujoco_playground._src.manipulation.franka_emika_panda import pick_cartesian as panda_pick_cartesian
 from mujoco_playground._src.manipulation.franka_emika_panda_robotiq import push_cube as robotiq_push_cube
 from mujoco_playground._src.manipulation.leap_hand import reorient as leap_cube_reorient
+from mujoco_playground._src.manipulation.leap_hand_study import reorient as leap_cube_reorient_study
 from mujoco_playground._src.manipulation.leap_hand import rotate_z as leap_rotate_z
 from mujoco_playground._src.manipulation.aero_hand import rotate_z as aero_hand_rotate_z
 
@@ -39,6 +41,7 @@ _envs = {
     "PandaOpenCabinet": panda_open_cabinet.PandaOpenCabinet,
     "PandaRobotiqPushCube": robotiq_push_cube.PandaRobotiqPushCube,
     "LeapCubeReorient": leap_cube_reorient.CubeReorient,
+    "LeapCubeReorientStudy": leap_cube_reorient_study.CubeReorient,
     "LeapCubeRotateZAxis": leap_rotate_z.CubeRotateZAxis,
     "AeroCubeRotateZAxis": aero_hand_rotate_z.CubeRotateZAxis,
 }
@@ -52,6 +55,7 @@ _cfgs = {
     "PandaOpenCabinet": panda_open_cabinet.default_config,
     "PandaRobotiqPushCube": robotiq_push_cube.default_config,
     "LeapCubeReorient": leap_cube_reorient.default_config,
+    "LeapCubeReorientStudy": leap_cube_reorient_study.default_config,
     "LeapCubeRotateZAxis": leap_rotate_z.default_config,
     "AeroCubeRotateZAxis": aero_hand_rotate_z.default_config,
 }
