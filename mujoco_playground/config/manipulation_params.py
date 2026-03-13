@@ -153,6 +153,24 @@ def brax_ppo_config(
         value_obs_key="privileged_state",
     )
     rl_config.num_resets_per_eval = 1
+  elif env_name == "LeapCubeReorientStudy":
+    rl_config.num_timesteps = 200_000_000
+    rl_config.num_evals = 20
+    rl_config.num_minibatches = 32
+    rl_config.unroll_length = 40
+    rl_config.num_updates_per_batch = 4
+    rl_config.discounting = 0.99
+    rl_config.learning_rate = 3e-4
+    rl_config.entropy_cost = 1e-2
+    rl_config.num_envs = 8192
+    rl_config.batch_size = 256
+    rl_config.network_factory = config_dict.create(
+        policy_hidden_layer_sizes=(512, 256, 128),
+        value_hidden_layer_sizes=(512, 256, 128),
+        policy_obs_key="state",
+        value_obs_key="privileged_state",
+    )
+    rl_config.num_resets_per_eval = 0
   elif env_name == "AeroCubeRotateZAxis":
     rl_config.num_timesteps = 300_000_000
     rl_config.num_evals = 10
@@ -189,19 +207,19 @@ def brax_vision_ppo_config(
       action_repeat=env_config.action_repeat,
       reward_scaling=1.0,
       network_factory=config_dict.create(
-        policy_hidden_layer_sizes=(256, 256),
-        cnn_output_channels=(32, 64, 64),
-        cnn_kernel_size=(8, 4, 3),
-        cnn_stride=(4, 2, 1),
-        cnn_padding="valid",
-        cnn_activation="relu",
-        cnn_max_pool=False,
-        cnn_global_pool="spatial_softmax",
-        init_noise_std=2.0,
-        cnn_kernel_init_fn="orthogonal",
-        cnn_kernel_init_kwargs={"scale": 1.41421356},
-        output_kernel_init_fn="orthogonal",
-        output_kernel_init_kwargs={"scale": 0.01},
+          policy_hidden_layer_sizes=(256, 256),
+          cnn_output_channels=(32, 64, 64),
+          cnn_kernel_size=(8, 4, 3),
+          cnn_stride=(4, 2, 1),
+          cnn_padding="valid",
+          cnn_activation="relu",
+          cnn_max_pool=False,
+          cnn_global_pool="spatial_softmax",
+          init_noise_std=2.0,
+          cnn_kernel_init_fn="orthogonal",
+          cnn_kernel_init_kwargs={"scale": 1.41421356},
+          output_kernel_init_fn="orthogonal",
+          output_kernel_init_kwargs={"scale": 0.01},
       ),
       num_resets_per_eval=10,
   )

@@ -16,7 +16,7 @@
 
 from mujoco_playground._src import mjx_env
 
-ROOT_PATH = mjx_env.ROOT_PATH / "manipulation" / "leap_hand"
+ROOT_PATH = mjx_env.ROOT_PATH / "manipulation" / "leap_hand_study"
 CUBE_XML = ROOT_PATH / "xmls" / "scene_mjx_cube.xml"
 
 NQ = 16

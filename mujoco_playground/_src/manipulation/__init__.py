@@ -41,7 +41,7 @@ _envs = {
     "PandaOpenCabinet": panda_open_cabinet.PandaOpenCabinet,
     "PandaRobotiqPushCube": robotiq_push_cube.PandaRobotiqPushCube,
     "LeapCubeReorient": leap_cube_reorient.CubeReorient,
-    "LeapCubeReorientStudy": leap_cube_reorient_study.CubeReorient,
+    "LeapCubeReorientStudy": leap_cube_reorient_study.CubeReorientStudy,
     "LeapCubeRotateZAxis": leap_rotate_z.CubeRotateZAxis,
     "AeroCubeRotateZAxis": aero_hand_rotate_z.CubeRotateZAxis,
 }
@@ -63,6 +63,7 @@ _cfgs = {
 _randomizer = {
     "LeapCubeRotateZAxis": leap_rotate_z.domain_randomize,
     "LeapCubeReorient": leap_cube_reorient.domain_randomize,
+    "LeapCubeReorientStudy": leap_cube_reorient_study.domain_randomize,
     "AeroCubeRotateZAxis": aero_hand_rotate_z.domain_randomize,
 }
 

@@ -13,6 +13,7 @@ from etils import epath
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src import reward
+
 # from mujoco_playground._src.manipulation.leap_hand_study import base as leap_hand_base
 from mujoco_playground._src.manipulation.leap_hand_study import leap_hand_constants as consts
 
@@ -84,18 +85,18 @@ def uniform_quat(rng: jax.Array) -> jax.Array:
   ])
 
 
-class CubeReorient(mjx_env.MjxEnv):
+class CubeReorientStudy(mjx_env.MjxEnv):
 
   def __init__(
       self,
-      xml_path: str,
-      config: config_dict.ConfigDict,
+      config: config_dict.ConfigDict = default_config(),
       config_overrides: Optional[Dict[str, Union[str, int, list[Any]]]] = None,
   ) -> None:
     super().__init__(config, config_overrides)
+    self._xml_path = consts.CUBE_XML.as_posix()
     self._model_assets = get_assets()
     self._mj_model = mujoco.MjModel.from_xml_string(
-        epath.Path(xml_path).read_text(), assets=self._model_assets
+        epath.Path(self._xml_path).read_text(), assets=self._model_assets
     )
     self._mj_model.opt.timestep = self._config.sim_dt
     self._mj_model.opt.ccd_iterations = 10
@@ -104,7 +105,6 @@ class CubeReorient(mjx_env.MjxEnv):
     self._mj_model.vis.global_.offheight = 2160
 
     self._mjx_model = mjx.put_model(self._mj_model, impl=self._config.impl)
-    self._xml_path = xml_path
     self._post_init()
 
   def _post_init(self) -> None:
@@ -240,6 +240,7 @@ class CubeReorient(mjx_env.MjxEnv):
     )
     state.info["position_targets"] = position_targets
 
+    # compute orientation error and success
     ori_error = self._cube_orientation_error(data)
     success = ori_error < self._config.success_threshold
     state.info["steps_since_last_success"] = jp.where(
@@ -252,6 +253,42 @@ class CubeReorient(mjx_env.MjxEnv):
         "steps_since_last_success"
     ]
     state.metrics["success_count"] = state.info["success_count"]
+
+    # get done and obs
+    done = self._get_termination(data, state.info)
+    obs = self._get_obs(data, state.info)
+
+    # compute rewards and sum reward
+    rewards = self._get_reward(data, action, state.info, state.metrics, done)
+    rewards = {
+        k: v * self._config.reward_config.scales[k] for k, v in rewards.items()
+    }
+    reward = sum(rewards.values()) * self.dt
+
+    # Sample a new goal orientation.
+    state.info["rng"], goal_rng = jax.random.split(state.info["rng"])
+    state.info["goal_quat_dquat"] = jp.where(
+        success,
+        3 + jax.random.uniform(goal_rng, (3,), minval=-2, maxval=2),
+        state.info["goal_quat_dquat"] * 0.8,
+    )
+    goal_quat = math.quat_integrate(
+        state.data.mocap_quat[0],
+        state.info["goal_quat_dquat"],
+        2 * jp.array(self.dt),
+    )
+    data = data.replace(mocap_quat=jp.array([goal_quat]))
+    state.metrics["reward/success"] = success.astype(float)
+    reward += success * self._config.reward_config.success_reward
+
+    # Update other info and metrics.
+    state.info["step"] += 1
+    state.info["last_last_act"] = state.info["last_act"]
+    state.info["last_act"] = action
+    for k, v in rewards.items():
+      state.metrics[f"reward/{k}"] = v
+
+    done = done.astype(reward.dtype)
 
     state = state.replace(data=data, obs=obs, reward=reward, done=done)
     return state
@@ -275,7 +312,7 @@ class CubeReorient(mjx_env.MjxEnv):
     qpos_error_history = (
         jp.roll(info["qpos_error_history"], 16)
         .at[:16]
-        .set(noisy_joint_angles - info["motor_targets"])
+        .set(noisy_joint_angles - info["position_targets"])
     )
     info["qpos_error_history"] = qpos_error_history
 
@@ -400,22 +437,112 @@ class CubeReorient(mjx_env.MjxEnv):
     data = state.data.replace(xfrc_applied=xfrc)
     return state.replace(data=data)
 
+  def _cube_orientation_error(self, data: mjx.Data):
+    cube_ori = self.get_cube_orientation(data)
+    cube_goal_ori = self.get_cube_goal_orientation(data)
+    quat_diff = math.quat_mul(cube_ori, math.quat_inv(cube_goal_ori))
+    quat_diff = math.normalize(quat_diff)
+    return 2.0 * jp.asin(jp.clip(math.norm(quat_diff[1:]), a_max=1.0))
+
+  def _get_termination(self, data: mjx.Data, info: dict[str, Any]) -> jax.Array:
+    del info  # Unused.
+    fall_termination = self.get_cube_position(data)[2] < -0.05
+    nans = jp.any(jp.isnan(data.qpos)) | jp.any(jp.isnan(data.qvel))
+    return fall_termination | nans
+
+  def _get_reward(
+      self,
+      data: mjx.Data,
+      action: jax.Array,
+      info: dict[str, Any],
+      metrics: dict[str, Any],
+      done: jax.Array,
+  ) -> dict[str, jax.Array]:
+    del done, metrics  # Unused.
+
+    hand_pose_reward = jp.sum(
+        jp.square(data.qpos[self._hand_qids] - self._default_pose)
+    )
+
+    return {
+        "orientation": self._reward_cube_orientation(data),
+        "position": self._reward_cube_position(data),
+        "termination": self._reward_termination(data, info),
+        "hand_pose": self._reward_hand_pose(data),
+        "action_rate": self._cost_action_rate(
+            action, info["last_act"], info["last_last_act"]
+        ),
+        "joint_vel": self._cost_joint_vel(data),
+        "energy": self._cost_energy(
+            data.qvel[self._hand_dqids], data.actuator_force
+        ),
+    }
+
+  # Reward functions. --------------------------------------------------------
+  def _reward_cube_orientation(self, data: mjx.Data) -> jax.Array:
+    ori_error = self._cube_orientation_error(data)
+    return reward.tolerance(ori_error, (0, 0.2), margin=jp.pi, sigmoid="linear")
+
+  def _reward_cube_position(self, data: mjx.Data) -> jax.Array:
+    cube_pos = self.get_cube_position(data)
+    palm_pos = self.get_palm_position(data)
+    cube_pose_mse = jp.linalg.norm(palm_pos - cube_pos)
+    return reward.tolerance(
+        cube_pose_mse, (0, 0.02), margin=0.05, sigmoid="linear"
+    )
+
+  def _reward_termination(
+      self, data: mjx.Data, info: dict[str, Any]
+  ) -> jax.Array:
+    return self._get_termination(data, info)
+
+  def _reward_hand_pose(self, data: mjx.Data) -> jax.Array:
+    return jp.sum(jp.square(data.qpos[self._hand_qids] - self._default_pose))
+
+  def _cost_action_rate(
+      self, act: jax.Array, last_act: jax.Array, last_last_act: jax.Array
+  ) -> jax.Array:
+    c1 = jp.sum(jp.square(act - last_act))
+    c2 = jp.sum(jp.square(act - 2 * last_act + last_last_act))
+    return c1 + c2
+
+  def _cost_joint_vel(self, data: mjx.Data) -> jax.Array:
+    max_velocity = 5.0
+    vel_tolerance = 1.0
+    hand_qvel = data.qvel[self._hand_dqids]
+    return jp.sum((hand_qvel / (max_velocity - vel_tolerance)) ** 2)
+
+  def _cost_energy(
+      self, qvel: jax.Array, qfrc_actuator: jax.Array
+  ) -> jax.Array:
+    return jp.sum(jp.abs(qvel) * jp.abs(qfrc_actuator))
+
   # Sensor readings. ---------------------------------------------------------
 
-  #   def get_palm_position(self, data: mjx.Data) -> jax.Array:
-  #     return mjx_env.get_sensor_data(self.mj_model, data, "palm_position")
+  def get_palm_position(self, data: mjx.Data) -> jax.Array:
+    return mjx_env.get_sensor_data(self.mj_model, data, "palm_position")
 
-  #   def get_cube_position(self, data: mjx.Data) -> jax.Array:
-  #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_position")
+  def get_cube_position(self, data: mjx.Data) -> jax.Array:
+    return mjx_env.get_sensor_data(self.mj_model, data, "cube_position")
 
-  #   def get_cube_orientation(self, data: mjx.Data) -> jax.Array:
-  #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_orientation")
+  def get_cube_orientation(self, data: mjx.Data) -> jax.Array:
+    return mjx_env.get_sensor_data(self.mj_model, data, "cube_orientation")
 
-  #   def get_cube_linvel(self, data: mjx.Data) -> jax.Array:
-  #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_linvel")
+  def get_cube_linvel(self, data: mjx.Data) -> jax.Array:
+    return mjx_env.get_sensor_data(self.mj_model, data, "cube_linvel")
 
-  #   def get_cube_angvel(self, data: mjx.Data) -> jax.Array:
-  #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_angvel")
+  def get_cube_angvel(self, data: mjx.Data) -> jax.Array:
+    return mjx_env.get_sensor_data(self.mj_model, data, "cube_angvel")
+
+  def get_cube_goal_orientation(self, data: mjx.Data) -> jax.Array:
+    return mjx_env.get_sensor_data(self.mj_model, data, "cube_goal_orientation")
+
+  def get_fingertip_positions(self, data: mjx.Data) -> jax.Array:
+    """Get fingertip positions relative to the grasp site."""
+    return jp.concatenate([
+        mjx_env.get_sensor_data(self.mj_model, data, f"{name}_position")
+        for name in consts.FINGERTIP_NAMES
+    ])
 
   #   def get_cube_angacc(self, data: mjx.Data) -> jax.Array:
   #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_angacc")
@@ -423,18 +550,8 @@ class CubeReorient(mjx_env.MjxEnv):
   #   def get_cube_upvector(self, data: mjx.Data) -> jax.Array:
   #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_upvector")
 
-  #   def get_cube_goal_orientation(self, data: mjx.Data) -> jax.Array:
-  #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_goal_orientation")
-
   #   def get_cube_goal_upvector(self, data: mjx.Data) -> jax.Array:
   #     return mjx_env.get_sensor_data(self.mj_model, data, "cube_goal_upvector")
-
-  #   def get_fingertip_positions(self, data: mjx.Data) -> jax.Array:
-  #     """Get fingertip positions relative to the grasp site."""
-  #     return jp.concatenate([
-  #         mjx_env.get_sensor_data(self.mj_model, data, f"{name}_position")
-  #         for name in consts.FINGERTIP_NAMES
-  #     ])
 
   # Accessors. -----------------------------------------------------------------
 
@@ -446,11 +563,160 @@ class CubeReorient(mjx_env.MjxEnv):
   def action_size(self) -> int:
     return self._mjx_model.nu
 
+  @property
+  def mj_model(self) -> mujoco.MjModel:
+    return self._mj_model
 
-#   @property
-#   def mj_model(self) -> mujoco.MjModel:
-#     return self._mj_model
+  @property
+  def mjx_model(self) -> mjx.Model:
+    return self._mjx_model
 
-#   @property
-#   def mjx_model(self) -> mjx.Model:
-#     return self._mjx_model
+
+def domain_randomize(model: mjx.Model, rng: jax.Array):
+  mj_model = CubeReorientStudy().mj_model
+  cube_geom_id = mj_model.geom("cube").id
+  cube_body_id = mj_model.body("cube").id
+  hand_qids = mjx_env.get_qpos_ids(mj_model, consts.JOINT_NAMES)
+  hand_body_names = [
+      "palm",
+      "if_bs",
+      "if_px",
+      "if_md",
+      "if_ds",
+      "mf_bs",
+      "mf_px",
+      "mf_md",
+      "mf_ds",
+      "rf_bs",
+      "rf_px",
+      "rf_md",
+      "rf_ds",
+      "th_mp",
+      "th_bs",
+      "th_px",
+      "th_ds",
+  ]
+  hand_body_ids = np.array([mj_model.body(n).id for n in hand_body_names])
+  fingertip_geoms = ["th_tip", "if_tip", "mf_tip", "rf_tip"]
+  fingertip_geom_ids = [mj_model.geom(g).id for g in fingertip_geoms]
+
+  @jax.vmap
+  def rand(rng):
+    rng, key = jax.random.split(rng)
+    # Fingertip friction: =U(0.5, 1.0).
+    fingertip_friction = jax.random.uniform(key, (1,), minval=0.5, maxval=1.0)
+    geom_friction = model.geom_friction.at[fingertip_geom_ids, 0].set(
+        fingertip_friction
+    )
+
+    # Scale cube mass: *U(0.8, 1.2).
+    rng, key1, key2 = jax.random.split(rng, 3)
+    dmass = jax.random.uniform(key1, minval=0.8, maxval=1.2)
+    body_inertia = model.body_inertia.at[cube_body_id].set(
+        model.body_inertia[cube_body_id] * dmass
+    )
+    dpos = jax.random.uniform(key2, (3,), minval=-5e-3, maxval=5e-3)
+    body_ipos = model.body_ipos.at[cube_body_id].set(
+        model.body_ipos[cube_body_id] + dpos
+    )
+
+    # Jitter qpos0: +U(-0.05, 0.05).
+    rng, key = jax.random.split(rng)
+    qpos0 = model.qpos0
+    qpos0 = qpos0.at[hand_qids].set(
+        qpos0[hand_qids]
+        + jax.random.uniform(key, shape=(16,), minval=-0.05, maxval=0.05)
+    )
+
+    # Scale static friction: *U(0.9, 1.1).
+    rng, key = jax.random.split(rng)
+    frictionloss = model.dof_frictionloss[hand_qids] * jax.random.uniform(
+        key, shape=(16,), minval=0.5, maxval=2.0
+    )
+    dof_frictionloss = model.dof_frictionloss.at[hand_qids].set(frictionloss)
+
+    # Scale armature: *U(1.0, 1.05).
+    rng, key = jax.random.split(rng)
+    armature = model.dof_armature[hand_qids] * jax.random.uniform(
+        key, shape=(16,), minval=1.0, maxval=1.05
+    )
+    dof_armature = model.dof_armature.at[hand_qids].set(armature)
+
+    # Scale all link masses: *U(0.9, 1.1).
+    rng, key = jax.random.split(rng)
+    dmass = jax.random.uniform(
+        key, shape=(len(hand_body_ids),), minval=0.9, maxval=1.1
+    )
+    body_mass = model.body_mass.at[hand_body_ids].set(
+        model.body_mass[hand_body_ids] * dmass
+    )
+
+    # Joint stiffness: *U(0.8, 1.2).
+    rng, key = jax.random.split(rng)
+    kp = model.actuator_gainprm[:, 0] * jax.random.uniform(
+        key, (model.nu,), minval=0.8, maxval=1.2
+    )
+    actuator_gainprm = model.actuator_gainprm.at[:, 0].set(kp)
+    actuator_biasprm = model.actuator_biasprm.at[:, 1].set(-kp)
+
+    # Joint damping: *U(0.8, 1.2).
+    rng, key = jax.random.split(rng)
+    kd = model.dof_damping[hand_qids] * jax.random.uniform(
+        key, (16,), minval=0.8, maxval=1.2
+    )
+    dof_damping = model.dof_damping.at[hand_qids].set(kd)
+
+    return (
+        geom_friction,
+        body_mass,
+        body_inertia,
+        body_ipos,
+        qpos0,
+        dof_frictionloss,
+        dof_armature,
+        dof_damping,
+        actuator_gainprm,
+        actuator_biasprm,
+    )
+
+  (
+      geom_friction,
+      body_mass,
+      body_inertia,
+      body_ipos,
+      qpos0,
+      dof_frictionloss,
+      dof_armature,
+      dof_damping,
+      actuator_gainprm,
+      actuator_biasprm,
+  ) = rand(rng)
+
+  in_axes = jax.tree_util.tree_map(lambda x: None, model)
+  in_axes = in_axes.tree_replace({
+      "geom_friction": 0,
+      "body_mass": 0,
+      "body_inertia": 0,
+      "body_ipos": 0,
+      "qpos0": 0,
+      "dof_frictionloss": 0,
+      "dof_armature": 0,
+      "dof_damping": 0,
+      "actuator_gainprm": 0,
+      "actuator_biasprm": 0,
+  })
+
+  model = model.tree_replace({
+      "geom_friction": geom_friction,
+      "body_mass": body_mass,
+      "body_inertia": body_inertia,
+      "body_ipos": body_ipos,
+      "qpos0": qpos0,
+      "dof_frictionloss": dof_frictionloss,
+      "dof_armature": dof_armature,
+      "dof_damping": dof_damping,
+      "actuator_gainprm": actuator_gainprm,
+      "actuator_biasprm": actuator_biasprm,
+  })
+
+  return model, in_axes
