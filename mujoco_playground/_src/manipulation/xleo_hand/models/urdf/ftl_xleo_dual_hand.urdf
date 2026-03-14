@@ -1,0 +1,802 @@
+<?xml version="1.0" encoding="utf-8"?><!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter --><!-- 
+TODO:
+1. waist and head: joint vel and tau limits 
+-->
+<robot name="xleo">  <!-- virtual links and joints (X-Y-Yaw) of chassis movement -->
+  <mujoco>
+    <compiler meshdir="../ftl_meshes" discardvisual="false" balanceinertia="false" />
+  </mujoco>
+
+  <!-- <link name="world"/> -->
+
+  <link name="world"/>
+
+  <!-- Left hand: virtual wrist + 6-DOF joints -->
+  <link name="L_WRIST">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <joint name="J_L_WRIST" type="fixed">
+    <origin xyz="0 0.1 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="L_WRIST" />
+  </joint>
+  <link name="L_BASE_X">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="L_BASE_Y">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="L_BASE_Z">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="L_BASE_ROLL">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="L_BASE_PITCH">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="L_BASE_YAW">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <joint name="J_LINK_HAND_BASE_L_X" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="L_WRIST" />
+    <child link="L_BASE_X" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_L_Y" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="L_BASE_X" />
+    <child link="L_BASE_Y" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_L_Z" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="L_BASE_Y" />
+    <child link="L_BASE_Z" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_L_ROLL" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="L_BASE_Z" />
+    <child link="L_BASE_ROLL" />
+    <axis xyz="1 0 0" />
+    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_L_PITCH" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="L_BASE_ROLL" />
+    <child link="L_BASE_PITCH" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_L_YAW" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="L_BASE_PITCH" />
+    <child link="L_BASE_YAW" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_HAND_BASE_L_OFFSET" type="fixed">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="L_BASE_YAW" />
+    <child link="LINK_HAND_BASE_L" />
+  </joint>
+
+  <!-- Left hand -->
+  <link name="LINK_HAND_BASE_L">
+    <inertial>
+      <origin xyz="0.048419 -0.004068 0.000167" rpy="0 0 0" />
+      <mass value="0.5804" />
+      <inertia ixx="0.0004471" ixy="0.00002308" ixz="-0.00004840" iyy="0.00056348" iyz="-0.00002031" izz="0.00074463" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_L.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_L.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="LINK_F0_L0">
+    <inertial>
+      <origin xyz="-0.00003617 0.00000000 -0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_L0" type="revolute">
+    <origin xyz="0.021499 0.0225 0.020865" rpy="1.5708 0 1.5708" />
+    <parent link="LINK_HAND_BASE_L" />
+    <child link="LINK_F0_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="1.9199" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_L1">
+    <inertial>
+      <origin xyz="0.03750623 -0.00008894 0.00016480" rpy="0 0 0" />
+      <mass value="0.06888161" />
+      <inertia ixx="0.00000650" ixy="-0.00000013" ixz="-0.00000001" iyy="0.00002055" iyz="-0.00000003" izz="0.00002001" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F0_L0" />
+    <child link="LINK_F0_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.1745" upper="0.7854" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_L2">
+    <inertial>
+      <origin xyz="0.02089747 -0.00213483 -0.00106078" rpy="0 0 0" />
+      <mass value="0.03102375" />
+      <inertia ixx="0.00000240" ixy="-0.00000010" ixz="0.00000057" iyy="0.00000708" iyz="-0.00000004" izz="0.00000642" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_L2" type="revolute">
+    <origin xyz="0.05425 0 0" rpy="0 0 0" />
+    <parent link="LINK_F0_L1" />
+    <child link="LINK_F0_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F1_L0">
+    <inertial>
+      <origin xyz="0.00003617 0 0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_L0" type="revolute">
+    <origin xyz="0.10232 0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_L" />
+    <child link="LINK_F1_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_L1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 -0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="-0.00000005" iyy="0.00001858" iyz="0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F1_L0" />
+    <child link="LINK_F1_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_L2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 -0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="0.00000055" iyy="0.00000636" iyz="-0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_L2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F1_L1" />
+    <child link="LINK_F1_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F2_L0">
+    <inertial>
+      <origin xyz="0.00003617 0 0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_L0" type="revolute">
+    <origin xyz="0.10232 -0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_L" />
+    <child link="LINK_F2_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_L1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 -0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="-0.00000005" iyy="0.00001858" iyz="0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F2_L0" />
+    <child link="LINK_F2_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_L2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 -0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="0.00000055" iyy="0.00000636" iyz="-0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_L2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F2_L1" />
+    <child link="LINK_F2_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+
+
+
+
+
+
+  <!-- Right hand -->
+  <link name="LINK_HAND_BASE_R">
+    <inertial>
+      <origin xyz="0.048419 0.004068 0.000167" rpy="0 0 0" />
+      <mass value="0.5804" />
+      <inertia ixx="0.0004471" ixy="0.00002308" ixz="-0.00004840" iyy="0.00056348" iyz="0.00002031" izz="0.00074463" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_R.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_R.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+
+
+  <!-- Right hand: virtual wrist + 6-DOF joints -->
+  <link name="R_WRIST">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <joint name="J_R_WRIST" type="fixed">
+    <origin xyz="0 -0.1 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="R_WRIST" />
+  </joint>
+  <link name="R_BASE_X">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="R_BASE_Y">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="R_BASE_Z">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="R_BASE_ROLL">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="R_BASE_PITCH">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="R_BASE_YAW">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <joint name="J_LINK_HAND_BASE_R_X" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="R_WRIST" />
+    <child link="R_BASE_X" />
+    <axis xyz="1 0 0" />
+    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_R_Y" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="R_BASE_X" />
+    <child link="R_BASE_Y" />
+    <axis xyz="0 1 0" />
+    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_R_Z" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="R_BASE_Y" />
+    <child link="R_BASE_Z" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_R_ROLL" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="R_BASE_Z" />
+    <child link="R_BASE_ROLL" />
+    <axis xyz="1 0 0" />
+    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_R_PITCH" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="R_BASE_ROLL" />
+    <child link="R_BASE_PITCH" />
+    <axis xyz="0 1 0" />
+    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_LINK_HAND_BASE_R_YAW" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="R_BASE_PITCH" />
+    <child link="R_BASE_YAW" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_HAND_BASE_R_OFFSET" type="fixed">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="R_BASE_YAW" />
+    <child link="LINK_HAND_BASE_R" />
+  </joint>
+
+
+
+
+  <link name="LINK_F0_R0">
+    <inertial>
+      <origin xyz="-0.00003617 0.00000000 0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_R0" type="revolute">
+    <origin xyz="0.021499 -0.0225 0.020865" rpy="1.5708 0 -1.5708" />
+    <parent link="LINK_HAND_BASE_R" />
+    <child link="LINK_F0_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="1.9199" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_R1">
+    <inertial>
+      <origin xyz="0.03750623 -0.00008894 -0.00016480" rpy="0 0 0" />
+      <mass value="0.06888161" />
+      <inertia ixx="0.00000650" ixy="-0.00000013" ixz="0.00000001" iyy="0.00002055" iyz="0.00000003" izz="0.00002001" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F0_R0" />
+    <child link="LINK_F0_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.1745" upper="0.7854" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_R2">
+    <inertial>
+      <origin xyz="0.02089747 -0.00213483 0.00106078" rpy="0 0 0" />
+      <mass value="0.03102375" />
+      <inertia ixx="0.00000240" ixy="-0.00000010" ixz="0.00000057" iyy="0.00000708" iyz="0.00000004" izz="0.00000642" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_R2" type="revolute">
+    <origin xyz="0.05425 0 0" rpy="0 0 0" />
+    <parent link="LINK_F0_R1" />
+    <child link="LINK_F0_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F1_R0">
+    <inertial>
+      <origin xyz="0.00003617 0 -0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_R0" type="revolute">
+    <origin xyz="0.10232 -0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_R" />
+    <child link="LINK_F1_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_R1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="0.00000005" iyy="0.00001858" iyz="-0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F1_R0" />
+    <child link="LINK_F1_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_R2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="-0.00000055" iyy="0.00000636" iyz="0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_R2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F1_R1" />
+    <child link="LINK_F1_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F2_R0">
+    <inertial>
+      <origin xyz="0.00003617 0 -0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_R0" type="revolute">
+    <origin xyz="0.10232 0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_R" />
+    <child link="LINK_F2_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_R1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="0.00000005" iyy="0.00001858" iyz="-0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F2_R0" />
+    <child link="LINK_F2_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_R2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="-0.00000055" iyy="0.00000636" iyz="0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_R2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F2_R1" />
+    <child link="LINK_F2_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+</robot>

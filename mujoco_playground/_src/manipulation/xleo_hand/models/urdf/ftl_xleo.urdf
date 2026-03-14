@@ -1,0 +1,1276 @@
+<?xml version="1.0" encoding="utf-8"?><!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-1-g15f4949  Build Version: 1.6.7594.29634
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter --><!-- 
+TODO:
+1. waist and head: joint vel and tau limits 
+-->
+<robot name="xleo">  <!-- virtual links and joints (X-Y-Yaw) of chassis movement -->
+  <link name="world"/>
+  <link name="BASE_X">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <link name="BASE_Y">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <mass value="0.01" />
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001" />
+    </inertial>
+  </link>
+  <joint name="J_BASE_X" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="world" />
+    <child link="BASE_X" />
+    <axis xyz="1 0 0" />
+    <limit lower="-10" upper="10" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_BASE_Y" type="prismatic">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="BASE_X" />
+    <child link="BASE_Y" />
+    <axis xyz="0 1 0" />
+    <limit lower="-10" upper="10" effort="5000" velocity="10" />
+  </joint>
+  <joint name="J_BASE_YAW" type="revolute">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+    <parent link="BASE_Y" />
+    <child link="LINK_BASE" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1000000" upper="1000000" effort="5000" velocity="10" />
+  </joint>  <!-- Waist and head -->
+  <link name="LINK_BASE">
+    <inertial>
+      <origin xyz="-0.002781 0.002837 0.117808" rpy="0 0 0" />
+      <mass value="44.742797" />
+      <inertia ixx="0.957160" ixy="0" ixz="-0.037235" iyy="0.951492" iyz="-0.002980" izz="1.513665" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_BASE.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_BASE.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="LINK_WAIST_M0">
+    <inertial>
+      <origin xyz="-0.084036 0.000233 0.526509" rpy="0 0 0" />
+      <mass value="21.901423" />
+      <inertia ixx="3.495314" ixy="-0.000187" ixz="-0.244343" iyy="3.515972" iyz="-0.000112" izz="0.139931" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WAIST_M0" type="revolute">
+    <origin xyz="0 0 0.18405" rpy="0 0 0" />
+    <parent link="LINK_BASE" />
+    <child link="LINK_WAIST_M0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.0543" upper="3.0543" effort="264" velocity="3.665" />
+  </joint>
+  <link name="LINK_WAIST_M1">
+    <inertial>
+      <origin xyz="0.094041 0.000068 -0.035684" rpy="0 0 0" />
+      <mass value="4.700499" />
+      <inertia ixx="0.026118" ixy="-0.000011" ixz="-0.000720" iyy="0.033158" iyz="-0.000003" izz="0.029474" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WAIST_M1" type="prismatic">
+    <origin xyz="-0.075 0 0.9163" rpy="0 0 0" />
+    <parent link="LINK_WAIST_M0" />
+    <child link="LINK_WAIST_M1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.6421" upper="0.1159" effort="12999.6" velocity="0.06" />
+  </joint>
+  <link name="LINK_WAIST_M2">
+    <inertial>
+      <origin xyz="-0.002486 0.000928 0.000086" rpy="0 0 0" />
+      <mass value="2.388671" />
+      <inertia ixx="0.009277" ixy="-0.000036" ixz="0.000007" iyy="0.009682" iyz="0.000026" izz="0.003717" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WAIST_M2" type="revolute">
+    <origin xyz="0.184 0 0.0446" rpy="-1.5708 0 0" />
+    <parent link="LINK_WAIST_M1" />
+    <child link="LINK_WAIST_M2" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="1.5708" effort="396" velocity="4.886" />
+  </joint>
+  <link name="LINK_WAIST_M3">
+    <inertial>
+      <origin xyz="0.161526 -0.000050 0.003392" rpy="0 0 0" />
+      <mass value="8.851506" />
+      <inertia ixx="0.050357" ixy="-0.000055" ixz="-0.001180" iyy="0.086630" iyz="0.000086" izz="0.097377" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WAIST_M3" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708" />
+    <parent link="LINK_WAIST_M2" />
+    <child link="LINK_WAIST_M3" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.3491" upper="0.3491" effort="315.29" velocity="6.136" />
+  </joint>
+  <link name="LINK_NECK_M0">
+    <inertial>
+      <origin xyz="0.000000 -0.004338 0.034098" rpy="0 0 0" />
+      <mass value="0.259106" />
+      <inertia ixx="0.000160" ixy="0" ixz="0" iyy="0.000122" iyz="-0.000004" izz="0.000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_NECK_M0" type="revolute">
+    <origin xyz="0.3255 0 0.0053" rpy="3.1416 -1.5708 0" />
+    <parent link="LINK_WAIST_M3" />
+    <child link="LINK_NECK_M0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.2479" upper="1.2479" effort="1.5" velocity="11.5192" />
+  </joint>
+  <link name="LINK_NECK_M1">
+    <inertial>
+      <origin xyz="0.004227 -0.097167 0.000159" rpy="0 0 0" />
+      <mass value="0.446180" />
+      <inertia ixx="0.000926" ixy="-0.000065" ixz="-0.000003" iyy="0.000968" iyz="0.000014" izz="0.000912" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_NECK_M1" type="revolute">
+    <origin xyz="0 0 0.04" rpy="-1.5708 0 0" />
+    <parent link="LINK_NECK_M0" />
+    <child link="LINK_NECK_M1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.0524" upper="1.1170" effort="1.5" velocity="11.5192" />
+  </joint>  <!-- Left arm -->
+  <link name="LINK_ARM_BASE_L">
+    <inertial>
+      <origin xyz="-0.000376 -0.005881 -0.048617" rpy="0 0 0" />
+      <mass value="1.582340" />
+      <inertia ixx="0.002962" ixy="-0.000028" ixz="0.000013" iyy="0.004143" iyz="0.000937" izz="0.003337" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_L.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.823529411764706 0.988235294117647 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_L.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_ARM_BASE_L" type="fixed">
+    <origin xyz="0.2575 -0.108 -0.0072" rpy="0 -1.5708 3.1416" />
+    <parent link="LINK_WAIST_M3" />
+    <child link="LINK_ARM_BASE_L" />
+  </joint>
+  <link name="LINK_SHOULDER_L0">
+    <inertial>
+      <origin xyz="-0.000072 -0.000567 -0.033456" rpy="0 0 0" />
+      <mass value="0.182858" />
+      <inertia ixx="0.000196" ixy="0" ixz="0" iyy="0.000176" iyz="-0.000004" izz="0.000058" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_SHOULDER_L0" type="revolute">
+    <origin xyz="0 0.087 0" rpy="-1.5708 1.5708 0" />
+    <parent link="LINK_ARM_BASE_L" />
+    <child link="LINK_SHOULDER_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.1416" upper="1.0472" effort="138" velocity="17.0170" />
+  </joint>
+  <link name="LINK_SHOULDER_L1">
+    <inertial>
+      <origin xyz="0.049216 0.040357 -0.003963" rpy="0 0 0" />
+      <mass value="1.071302" />
+      <inertia ixx="0.001228" ixy="0.000276" ixz="-0.000054" iyy="0.001705" iyz="0.000015" izz="0.001968" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_SHOULDER_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_SHOULDER_L0" />
+    <child link="LINK_SHOULDER_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.5236" upper="2.2689" effort="138" velocity="17.0170" />
+  </joint>
+  <link name="LINK_SHOULDER_L2">
+    <inertial>
+      <origin xyz="0.000292 0.007585 0.099618" rpy="0 0 0" />
+      <mass value="1.492367" />
+      <inertia ixx="0.006837" ixy="0.000028" ixz="0.000194" iyy="0.006641" iyz="0.000280" izz="0.001212" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_SHOULDER_L2" type="revolute">
+    <origin xyz="0.1245 0.04 0" rpy="0 1.5708 0" />
+    <parent link="LINK_SHOULDER_L1" />
+    <child link="LINK_SHOULDER_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.3562" upper="2.3562" effort="69" velocity="17.0170" />
+  </joint>
+  <link name="LINK_ELBOW_L0">
+    <inertial>
+      <origin xyz="0.013153 -0.000011 0.000185" rpy="0 0 0" />
+      <mass value="0.061802" />
+      <inertia ixx="0.000018" ixy="0" ixz="0" iyy="0.000033" iyz="0" izz="0.000019" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_ELBOW_L0" type="revolute">
+    <origin xyz="0 0 0.1955" rpy="0 -1.5708 0" />
+    <parent link="LINK_SHOULDER_L2" />
+    <child link="LINK_ELBOW_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.2689" upper="0" effort="69" velocity="34.0339" />
+  </joint>
+  <link name="LINK_ELBOW_L1">
+    <inertial>
+      <origin xyz="-0.000040 -0.000013 0.154649" rpy="0 0 0" />
+      <mass value="1.298189" />
+      <inertia ixx="0.005790" ixy="0" ixz="-0.000213" iyy="0.005631" iyz="-0.000001" izz="0.000758" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_ELBOW_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="0 1.5708 0" />
+    <parent link="LINK_ELBOW_L0" />
+    <child link="LINK_ELBOW_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.7854" upper="3.9270" effort="55" velocity="42.5162" />
+  </joint>
+  <link name="LINK_WRIST_L0">
+    <inertial>
+      <origin xyz="0.003246 -0.000280 -0.000451" rpy="0 0 0" />
+      <mass value="0.063741" />
+      <inertia ixx="0.000024" ixy="0" ixz="0" iyy="0.000025" iyz="0" izz="0.000025" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WRIST_L0" type="revolute">
+    <origin xyz="0 0 0.28" rpy="-1.5708 -1.5708 0" />
+    <parent link="LINK_ELBOW_L1" />
+    <child link="LINK_WRIST_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.8727" upper="0.8727" effort="43" velocity="31.4159" />
+  </joint>
+  <link name="LINK_WRIST_L1">
+    <inertial>
+      <origin xyz="0.028136 0.000048 -0.001857" rpy="0 0 0" />
+      <mass value="0.126338" />
+      <inertia ixx="0.000076" ixy="0" ixz="0.000006" iyy="0.000124" iyz="0" izz="0.000084" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 0.25" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WRIST_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_WRIST_L0" />
+    <child link="LINK_WRIST_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.3963" upper="1.3963" effort="43" velocity="31.4159" />
+  </joint>  <!-- Left hand -->
+  <link name="LINK_HAND_BASE_L">
+    <inertial>
+      <origin xyz="0.048419 -0.004068 0.000167" rpy="0 0 0" />
+      <mass value="0.5804" />
+      <inertia ixx="0.0004471" ixy="0.00002308" ixz="-0.00004840" iyy="0.00056348" iyz="-0.00002031" izz="0.00074463" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_L.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_L.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_HAND_BASE_L" type="fixed">
+    <origin xyz="0.0555 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_WRIST_L1" />
+    <child link="LINK_HAND_BASE_L" />
+  </joint>
+  <link name="LINK_F0_L0">
+    <inertial>
+      <origin xyz="-0.00003617 0.00000000 -0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_L0" type="revolute">
+    <origin xyz="0.021499 0.0225 0.020865" rpy="1.5708 0 1.5708" />
+    <parent link="LINK_HAND_BASE_L" />
+    <child link="LINK_F0_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="1.9199" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_L1">
+    <inertial>
+      <origin xyz="0.03750623 -0.00008894 0.00016480" rpy="0 0 0" />
+      <mass value="0.06888161" />
+      <inertia ixx="0.00000650" ixy="-0.00000013" ixz="-0.00000001" iyy="0.00002055" iyz="-0.00000003" izz="0.00002001" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F0_L0" />
+    <child link="LINK_F0_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.1745" upper="0.7854" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_L2">
+    <inertial>
+      <origin xyz="0.02089747 -0.00213483 -0.00106078" rpy="0 0 0" />
+      <mass value="0.03102375" />
+      <inertia ixx="0.00000240" ixy="-0.00000010" ixz="0.00000057" iyy="0.00000708" iyz="-0.00000004" izz="0.00000642" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_L2" type="revolute">
+    <origin xyz="0.05425 0 0" rpy="0 0 0" />
+    <parent link="LINK_F0_L1" />
+    <child link="LINK_F0_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F1_L0">
+    <inertial>
+      <origin xyz="0.00003617 0 0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_L0" type="revolute">
+    <origin xyz="0.10232 0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_L" />
+    <child link="LINK_F1_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_L1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 -0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="-0.00000005" iyy="0.00001858" iyz="0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F1_L0" />
+    <child link="LINK_F1_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_L2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 -0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="0.00000055" iyy="0.00000636" iyz="-0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_L2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F1_L1" />
+    <child link="LINK_F1_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F2_L0">
+    <inertial>
+      <origin xyz="0.00003617 0 0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_L0" type="revolute">
+    <origin xyz="0.10232 -0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_L" />
+    <child link="LINK_F2_L0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_L1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 -0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="-0.00000005" iyy="0.00001858" iyz="0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_L1" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F2_L0" />
+    <child link="LINK_F2_L1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_L2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 -0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="0.00000055" iyy="0.00000636" iyz="-0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_L2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F2_L1" />
+    <child link="LINK_F2_L2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>  <!-- Right arm -->
+  <link name="LINK_ARM_BASE_R">
+    <inertial>
+      <origin xyz="-0.000376 0.005881 -0.048617" rpy="0 0 0" />
+      <mass value="1.582340" />
+      <inertia ixx="0.002962" ixy="0.000028" ixz="0.000013" iyy="0.004143" iyz="-0.000937" izz="0.003337" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_R.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.823529411764706 0.988235294117647 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_R.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_ARM_BASE_R" type="fixed">
+    <origin xyz="0.2575 0.108 -0.0072" rpy="0 -1.5708 3.1416" />
+    <parent link="LINK_WAIST_M3" />
+    <child link="LINK_ARM_BASE_R" />
+  </joint>
+  <link name="LINK_SHOULDER_R0">
+    <inertial>
+      <origin xyz="-0.000072 -0.000567 0.033456" rpy="0 0 0" />
+      <mass value="0.182858" />
+      <inertia ixx="0.000196" ixy="0" ixz="0" iyy="0.000176" iyz="0.000004" izz="0.000058" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_SHOULDER_R0" type="revolute">
+    <origin xyz="0 -0.087 0" rpy="-1.5708 1.5708 0" />
+    <parent link="LINK_ARM_BASE_R" />
+    <child link="LINK_SHOULDER_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.1416" upper="1.0472" effort="138" velocity="17.0170" />
+  </joint>
+  <link name="LINK_SHOULDER_R1">
+    <inertial>
+      <origin xyz="0.049216 -0.040357 -0.003963" rpy="0 0 0" />
+      <mass value="1.071302" />
+      <inertia ixx="0.001228" ixy="-0.000276" ixz="-0.000054" iyy="0.001705" iyz="-0.000015" izz="0.001968" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_SHOULDER_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_SHOULDER_R0" />
+    <child link="LINK_SHOULDER_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.2689" upper="0.5236" effort="138" velocity="17.0170" />
+  </joint>
+  <link name="LINK_SHOULDER_R2">
+    <inertial>
+      <origin xyz="0.000292 -0.007585 0.099618" rpy="0 0 0" />
+      <mass value="1.492367" />
+      <inertia ixx="0.006837" ixy="-0.000028" ixz="0.000194" iyy="0.006641" iyz="-0.000280" izz="0.001212" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_SHOULDER_R2" type="revolute">
+    <origin xyz="0.1245 -0.04 0" rpy="0 1.5708 0" />
+    <parent link="LINK_SHOULDER_R1" />
+    <child link="LINK_SHOULDER_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-2.3562" upper="2.3562" effort="69" velocity="17.0170" />
+  </joint>
+  <link name="LINK_ELBOW_R0">
+    <inertial>
+      <origin xyz="0.013153 0.000011 0.000185" rpy="0 0 0" />
+      <mass value="0.061802" />
+      <inertia ixx="0.000018" ixy="0" ixz="0" iyy="0.000033" iyz="0" izz="0.000019" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_ELBOW_R0" type="revolute">
+    <origin xyz="0 0 0.1955" rpy="0 -1.5708 0" />
+    <parent link="LINK_SHOULDER_R2" />
+    <child link="LINK_ELBOW_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="2.2689" effort="69" velocity="34.0339" />
+  </joint>
+  <link name="LINK_ELBOW_R1">
+    <inertial>
+      <origin xyz="-0.000040 0.000013 0.154649" rpy="0 0 0" />
+      <mass value="1.298189" />
+      <inertia ixx="0.005790" ixy="0" ixz="-0.000213" iyy="0.005631" iyz="0.000001" izz="0.000758" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_ELBOW_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="0 1.5708 0" />
+    <parent link="LINK_ELBOW_R0" />
+    <child link="LINK_ELBOW_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-3.9270" upper="0.7854" effort="55" velocity="42.5162" />
+  </joint>
+  <link name="LINK_WRIST_R0">
+    <inertial>
+      <origin xyz="0.003246 0.000280 -0.000451" rpy="0 0 0" />
+      <mass value="0.063741" />
+      <inertia ixx="0.000024" ixy="0" ixz="0" iyy="0.000025" iyz="0" izz="0.000025" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WRIST_R0" type="revolute">
+    <origin xyz="0 0 0.28" rpy="-1.5708 -1.5708 0" />
+    <parent link="LINK_ELBOW_R1" />
+    <child link="LINK_WRIST_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.8727" upper="0.8727" effort="43" velocity="31.4159" />
+  </joint>
+  <link name="LINK_WRIST_R1">
+    <inertial>
+      <origin xyz="0.028136 0.000048 0.001857" rpy="0 0 0" />
+      <mass value="0.126338" />
+      <inertia ixx="0.000076" ixy="0" ixz="-0.000006" iyy="0.000124" iyz="0" izz="0.000084" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 0.25" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_WRIST_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_WRIST_R0" />
+    <child link="LINK_WRIST_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.3963" upper="1.3963" effort="43" velocity="31.4159" />
+  </joint>  <!-- Right hand -->
+  <link name="LINK_HAND_BASE_R">
+    <inertial>
+      <origin xyz="0.048419 0.004068 0.000167" rpy="0 0 0" />
+      <mass value="0.5804" />
+      <inertia ixx="0.0004471" ixy="0.00002308" ixz="-0.00004840" iyy="0.00056348" iyz="0.00002031" izz="0.00074463" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_R.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_R.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_HAND_BASE_R" type="fixed">
+    <origin xyz="0.0555 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_WRIST_R1" />
+    <child link="LINK_HAND_BASE_R" />
+  </joint>
+  <link name="LINK_F0_R0">
+    <inertial>
+      <origin xyz="-0.00003617 0.00000000 0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_R0" type="revolute">
+    <origin xyz="0.021499 -0.0225 0.020865" rpy="1.5708 0 -1.5708" />
+    <parent link="LINK_HAND_BASE_R" />
+    <child link="LINK_F0_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="1.9199" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_R1">
+    <inertial>
+      <origin xyz="0.03750623 -0.00008894 -0.00016480" rpy="0 0 0" />
+      <mass value="0.06888161" />
+      <inertia ixx="0.00000650" ixy="-0.00000013" ixz="0.00000001" iyy="0.00002055" iyz="0.00000003" izz="0.00002001" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F0_R0" />
+    <child link="LINK_F0_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.1745" upper="0.7854" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F0_R2">
+    <inertial>
+      <origin xyz="0.02089747 -0.00213483 0.00106078" rpy="0 0 0" />
+      <mass value="0.03102375" />
+      <inertia ixx="0.00000240" ixy="-0.00000010" ixz="0.00000057" iyy="0.00000708" iyz="0.00000004" izz="0.00000642" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F0_R2" type="revolute">
+    <origin xyz="0.05425 0 0" rpy="0 0 0" />
+    <parent link="LINK_F0_R1" />
+    <child link="LINK_F0_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F1_R0">
+    <inertial>
+      <origin xyz="0.00003617 0 -0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_R0" type="revolute">
+    <origin xyz="0.10232 -0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_R" />
+    <child link="LINK_F1_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_R1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="0.00000005" iyy="0.00001858" iyz="-0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F1_R0" />
+    <child link="LINK_F1_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F1_R2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="-0.00000055" iyy="0.00000636" iyz="0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F1_R2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F1_R1" />
+    <child link="LINK_F1_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+  <link name="LINK_F2_R0">
+    <inertial>
+      <origin xyz="0.00003617 0 -0.00084515" rpy="0 0 0" />
+      <mass value="0.026087" />
+      <inertia ixx="0.00000192" ixy="0" ixz="0" iyy="0.00000152" iyz="0" izz="0.00000122" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_R0" type="revolute">
+    <origin xyz="0.10232 0.0225 0.00574" rpy="1.5708 0 0" />
+    <parent link="LINK_HAND_BASE_R" />
+    <child link="LINK_F2_R0" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.8326" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_R1">
+    <inertial>
+      <origin xyz="0.03243751 -0.00016602 0.00016480" rpy="0 0 0" />
+      <mass value="0.07027318" />
+      <inertia ixx="0.00000696" ixy="0.00000002" ixz="0.00000005" iyy="0.00001858" iyz="-0.00000003" izz="0.00001779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_R1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="LINK_F2_R0" />
+    <child link="LINK_F2_R1" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="0.4363" effort="3" velocity="25" />
+  </joint>
+  <link name="LINK_F2_R2">
+    <inertial>
+      <origin xyz="0.02080647 -0.00102362 0.00132199" rpy="0 0 0" />
+      <mass value="0.02575183" />
+      <inertia ixx="0.00000205" ixy="0.00000013" ixz="-0.00000055" iyy="0.00000636" iyz="0.00000001" izz="0.00000573" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.7 0.7 0.7 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint name="J_F2_R2" type="revolute">
+    <origin xyz="0.04825 0 0" rpy="-1.5708 0 0" />
+    <parent link="LINK_F2_R1" />
+    <child link="LINK_F2_R2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-0.4363" upper="1.5708" effort="1.5" velocity="25" />
+  </joint>
+</robot>
