@@ -73,42 +73,42 @@ TODO:
     <parent link="L_WRIST" />
     <child link="L_BASE_X" />
     <axis xyz="1 0 0" />
-    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_Y" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_X" />
     <child link="L_BASE_Y" />
     <axis xyz="0 1 0" />
-    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_Z" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_Y" />
     <child link="L_BASE_Z" />
     <axis xyz="0 0 1" />
-    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_ROLL" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_Z" />
     <child link="L_BASE_ROLL" />
     <axis xyz="1 0 0" />
-    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_PITCH" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_ROLL" />
     <child link="L_BASE_PITCH" />
     <axis xyz="0 1 0" />
-    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_YAW" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_PITCH" />
     <child link="L_BASE_YAW" />
     <axis xyz="0 0 1" />
-    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
   </joint>
   <joint name="J_HAND_BASE_L_OFFSET" type="fixed">
     <origin xyz="0 0 0" rpy="1.5708 0 0" />
@@ -135,7 +135,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_HAND_BASE_L.STL" />
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_L_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -157,7 +157,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L0_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -186,7 +186,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L1_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -215,7 +215,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L2_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -244,7 +244,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L0_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -273,7 +273,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L1_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -302,7 +302,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L2_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -331,7 +331,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L0_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -360,7 +360,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L1_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -389,7 +389,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L2_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -425,7 +425,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_HAND_BASE_R.STL" />
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_R_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -492,42 +492,42 @@ TODO:
     <parent link="R_WRIST" />
     <child link="R_BASE_X" />
     <axis xyz="1 0 0" />
-    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_Y" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_X" />
     <child link="R_BASE_Y" />
     <axis xyz="0 1 0" />
-    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_Z" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_Y" />
     <child link="R_BASE_Z" />
     <axis xyz="0 0 1" />
-    <limit lower="-0.5" upper="0.5" effort="5000" velocity="10" />
+    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_ROLL" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_Z" />
     <child link="R_BASE_ROLL" />
     <axis xyz="1 0 0" />
-    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_PITCH" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_ROLL" />
     <child link="R_BASE_PITCH" />
     <axis xyz="0 1 0" />
-    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_YAW" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_PITCH" />
     <child link="R_BASE_YAW" />
     <axis xyz="0 0 1" />
-    <limit lower="-3.14159" upper="3.14159" effort="5000" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
   </joint>
   <joint name="J_HAND_BASE_R_OFFSET" type="fixed">
     <origin xyz="0 0 0" rpy="-1.5708 0 0" />
@@ -556,7 +556,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L0_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -585,7 +585,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L1_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -614,7 +614,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L2_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -643,7 +643,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L0_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -672,7 +672,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L1_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -701,7 +701,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L2_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -730,7 +730,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L0_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -759,7 +759,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L1_convex.stl" />
       </geometry>
     </collision>
   </link>
@@ -788,7 +788,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L2_convex.stl" />
       </geometry>
     </collision>
   </link>

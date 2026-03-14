@@ -50,7 +50,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_BASE.STL" />
+        <mesh filename="../ftl_meshes/LINK_BASE.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -59,7 +59,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_BASE.STL" />
+        <mesh filename="../ftl_meshes/LINK_BASE.STL" />
       </geometry>
     </collision>
   </link>
@@ -72,7 +72,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M0.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -81,7 +81,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M0.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M0.STL" />
       </geometry>
     </collision>
   </link>
@@ -101,7 +101,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M1.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -110,7 +110,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M1.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M1.STL" />
       </geometry>
     </collision>
   </link>
@@ -130,7 +130,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M2.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -139,7 +139,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M2.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M2.STL" />
       </geometry>
     </collision>
   </link>
@@ -159,7 +159,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M3.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M3.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -168,7 +168,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WAIST_M3.STL" />
+        <mesh filename="../ftl_meshes/LINK_WAIST_M3.STL" />
       </geometry>
     </collision>
   </link>
@@ -188,7 +188,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M0.STL" />
+        <mesh filename="../ftl_meshes/LINK_NECK_M0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -197,7 +197,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M0.STL" />
+        <mesh filename="../ftl_meshes/LINK_NECK_M0.STL" />
       </geometry>
     </collision>
   </link>
@@ -217,7 +217,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M1.STL" />
+        <mesh filename="../ftl_meshes/LINK_NECK_M1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -226,7 +226,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_NECK_M1.STL" />
+        <mesh filename="../ftl_meshes/LINK_NECK_M1.STL" />
       </geometry>
     </collision>
   </link>
@@ -246,7 +246,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_L.STL" />
+        <mesh filename="../ftl_meshes/LINK_ARM_BASE_L.STL" />
       </geometry>
       <material name="">
         <color rgba="0.823529411764706 0.988235294117647 1 1" />
@@ -255,7 +255,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_L.STL" />
+        <mesh filename="../ftl_meshes/LINK_ARM_BASE_L.STL" />
       </geometry>
     </collision>
   </link>
@@ -273,7 +273,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
@@ -282,7 +282,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -302,7 +302,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -311,7 +311,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -331,7 +331,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -340,7 +340,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_L2.STL" />
       </geometry>
     </collision>
   </link>
@@ -360,7 +360,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
@@ -369,7 +369,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -389,7 +389,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -398,7 +398,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -418,7 +418,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="1 1 1 1" />
@@ -427,7 +427,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -447,7 +447,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 0.25" />
@@ -456,7 +456,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -476,7 +476,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_L.STL" />
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_L.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -485,7 +485,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_L.STL" />
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_L.STL" />
       </geometry>
     </collision>
   </link>
@@ -503,7 +503,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -512,7 +512,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -532,7 +532,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -541,7 +541,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -561,7 +561,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -570,7 +570,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
       </geometry>
     </collision>
   </link>
@@ -590,7 +590,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -599,7 +599,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -619,7 +619,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -628,7 +628,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -648,7 +648,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -657,7 +657,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
       </geometry>
     </collision>
   </link>
@@ -677,7 +677,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -686,7 +686,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -706,7 +706,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -715,7 +715,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -735,7 +735,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -744,7 +744,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
       </geometry>
     </collision>
   </link>
@@ -764,7 +764,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_R.STL" />
+        <mesh filename="../ftl_meshes/LINK_ARM_BASE_R.STL" />
       </geometry>
       <material name="">
         <color rgba="0.823529411764706 0.988235294117647 1 1" />
@@ -773,7 +773,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ARM_BASE_R.STL" />
+        <mesh filename="../ftl_meshes/LINK_ARM_BASE_R.STL" />
       </geometry>
     </collision>
   </link>
@@ -791,7 +791,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R0.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_R0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
@@ -800,7 +800,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R0.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_R0.STL" />
       </geometry>
     </collision>
   </link>
@@ -820,7 +820,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R1.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_R1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -829,7 +829,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R1.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_R1.STL" />
       </geometry>
     </collision>
   </link>
@@ -849,7 +849,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R2.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_R2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -858,7 +858,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_SHOULDER_R2.STL" />
+        <mesh filename="../ftl_meshes/LINK_SHOULDER_R2.STL" />
       </geometry>
     </collision>
   </link>
@@ -878,7 +878,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R0.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_R0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 1" />
@@ -887,7 +887,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R0.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_R0.STL" />
       </geometry>
     </collision>
   </link>
@@ -907,7 +907,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R1.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_R1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -916,7 +916,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_ELBOW_R1.STL" />
+        <mesh filename="../ftl_meshes/LINK_ELBOW_R1.STL" />
       </geometry>
     </collision>
   </link>
@@ -936,7 +936,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R0.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_R0.STL" />
       </geometry>
       <material name="">
         <color rgba="1 1 1 1" />
@@ -945,7 +945,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R0.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_R0.STL" />
       </geometry>
     </collision>
   </link>
@@ -965,7 +965,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R1.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_R1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.898039215686275 0.917647058823529 0.929411764705882 0.25" />
@@ -974,7 +974,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_WRIST_R1.STL" />
+        <mesh filename="../ftl_meshes/LINK_WRIST_R1.STL" />
       </geometry>
     </collision>
   </link>
@@ -994,7 +994,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_R.STL" />
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_R.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1003,7 +1003,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_HAND_BASE_R.STL" />
+        <mesh filename="../ftl_meshes/LINK_HAND_BASE_R.STL" />
       </geometry>
     </collision>
   </link>
@@ -1021,7 +1021,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1030,7 +1030,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -1050,7 +1050,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1059,7 +1059,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -1079,7 +1079,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1088,7 +1088,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F0_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F0_L2.STL" />
       </geometry>
     </collision>
   </link>
@@ -1108,7 +1108,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1117,7 +1117,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -1137,7 +1137,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1146,7 +1146,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -1166,7 +1166,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1175,7 +1175,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F1_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F1_L2.STL" />
       </geometry>
     </collision>
   </link>
@@ -1195,7 +1195,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1204,7 +1204,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L0.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L0.STL" />
       </geometry>
     </collision>
   </link>
@@ -1224,7 +1224,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1233,7 +1233,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L1.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L1.STL" />
       </geometry>
     </collision>
   </link>
@@ -1253,7 +1253,7 @@ TODO:
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
       </geometry>
       <material name="">
         <color rgba="0.7 0.7 0.7 1" />
@@ -1262,7 +1262,7 @@ TODO:
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://sim_robot/urdf/ftl_meshes/LINK_F2_L2.STL" />
+        <mesh filename="../ftl_meshes/LINK_F2_L2.STL" />
       </geometry>
     </collision>
   </link>
