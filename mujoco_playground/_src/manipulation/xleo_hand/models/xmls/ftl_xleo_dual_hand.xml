@@ -15,27 +15,27 @@
 
   <asset>
     <mesh name="LINK_HAND_BASE_L" content_type="model/stl" file="LINK_HAND_BASE_L.STL"/>
-    <mesh name="LINK_HAND_BASE_L_convex" content_type="model/stl" file="LINK_HAND_BASE_L_convex.stl"/>
+    <mesh name="LINK_HAND_BASE_L_convex" content_type="model/stl" file="convex_new/LINK_HAND_BASE_L_convex.stl"/>
     <mesh name="LINK_F0_L0" content_type="model/stl" file="LINK_F0_L0.STL"/>
-    <mesh name="LINK_F0_L0_convex" content_type="model/stl" file="LINK_F0_L0_convex.stl"/>
+    <mesh name="LINK_F0_L0_convex" content_type="model/stl" file="convex_new/LINK_F0_L0_convex.stl"/>
     <mesh name="LINK_F0_L1" content_type="model/stl" file="LINK_F0_L1.STL"/>
-    <mesh name="LINK_F0_L1_convex" content_type="model/stl" file="LINK_F0_L1_convex.stl"/>
+    <mesh name="LINK_F0_L1_convex" content_type="model/stl" file="convex_new/LINK_F0_L1_convex.stl"/>
     <mesh name="LINK_F0_L2" content_type="model/stl" file="LINK_F0_L2.STL"/>
-    <mesh name="LINK_F0_L2_convex" content_type="model/stl" file="LINK_F0_L2_convex.stl"/>
+    <mesh name="LINK_F0_L2_convex" content_type="model/stl" file="convex_new/LINK_F0_L2_convex.stl"/>
     <mesh name="LINK_F1_L0" content_type="model/stl" file="LINK_F1_L0.STL"/>
-    <mesh name="LINK_F1_L0_convex" content_type="model/stl" file="LINK_F1_L0_convex.stl"/>
+    <mesh name="LINK_F1_L0_convex" content_type="model/stl" file="convex_new/LINK_F1_L0_convex.stl"/>
     <mesh name="LINK_F1_L1" content_type="model/stl" file="LINK_F1_L1.STL"/>
-    <mesh name="LINK_F1_L1_convex" content_type="model/stl" file="LINK_F1_L1_convex.stl"/>
+    <mesh name="LINK_F1_L1_convex" content_type="model/stl" file="convex_new/LINK_F1_L1_convex.stl"/>
     <mesh name="LINK_F1_L2" content_type="model/stl" file="LINK_F1_L2.STL"/>
-    <mesh name="LINK_F1_L2_convex" content_type="model/stl" file="LINK_F1_L2_convex.stl"/>
+    <mesh name="LINK_F1_L2_convex" content_type="model/stl" file="convex_new/LINK_F1_L2_convex.stl"/>
     <mesh name="LINK_F2_L0" content_type="model/stl" file="LINK_F2_L0.STL"/>
-    <mesh name="LINK_F2_L0_convex" content_type="model/stl" file="LINK_F2_L0_convex.stl"/>
+    <mesh name="LINK_F2_L0_convex" content_type="model/stl" file="convex_new/LINK_F2_L0_convex.stl"/>
     <mesh name="LINK_F2_L1" content_type="model/stl" file="LINK_F2_L1.STL"/>
-    <mesh name="LINK_F2_L1_convex" content_type="model/stl" file="LINK_F2_L1_convex.stl"/>
+    <mesh name="LINK_F2_L1_convex" content_type="model/stl" file="convex_new/LINK_F2_L1_convex.stl"/>
     <mesh name="LINK_F2_L2" content_type="model/stl" file="LINK_F2_L2.STL"/>
-    <mesh name="LINK_F2_L2_convex" content_type="model/stl" file="LINK_F2_L2_convex.stl"/>
+    <mesh name="LINK_F2_L2_convex" content_type="model/stl" file="convex_new/LINK_F2_L2_convex.stl"/>
     <mesh name="LINK_HAND_BASE_R" content_type="model/stl" file="LINK_HAND_BASE_R.STL"/>
-    <mesh name="LINK_HAND_BASE_R_convex" content_type="model/stl" file="LINK_HAND_BASE_R_convex.stl"/>
+    <mesh name="LINK_HAND_BASE_R_convex" content_type="model/stl" file="convex_new/LINK_HAND_BASE_R_convex.stl"/>
   </asset>
 
   <contact>
@@ -191,13 +191,13 @@
   </worldbody>
 
   <actuator>
-    <!-- Left hand wrist (position control) -->
-    <position name="M_LINK_HAND_BASE_L_X" joint="J_LINK_HAND_BASE_L_X" kp="300" kv="10" forcerange="-50 50" ctrlrange="-0.05 0.05"/>
-    <position name="M_LINK_HAND_BASE_L_Y" joint="J_LINK_HAND_BASE_L_Y" kp="300" kv="10" forcerange="-50 50" ctrlrange="-0.05 0.05"/>
-    <position name="M_LINK_HAND_BASE_L_Z" joint="J_LINK_HAND_BASE_L_Z" kp="300" kv="10" forcerange="-50 50" ctrlrange="-0.05 0.05"/>
-    <position name="M_LINK_HAND_BASE_L_ROLL" joint="J_LINK_HAND_BASE_L_ROLL" kp="50" kv="0.5" forcerange="-50 50" ctrlrange="-0.5236 0.5236"/>
-    <position name="M_LINK_HAND_BASE_L_PITCH" joint="J_LINK_HAND_BASE_L_PITCH" kp="50" kv="0.5" forcerange="-50 50" ctrlrange="-0.5236 0.5236"/>
-    <position name="M_LINK_HAND_BASE_L_YAW" joint="J_LINK_HAND_BASE_L_YAW" kp="50" kv="0.5" forcerange="-50 50" ctrlrange="-0.5236 0.5236"/>
+    <!-- Left hand wrist (motor/torque control) -->
+    <motor name="M_LINK_HAND_BASE_L_X" joint="J_LINK_HAND_BASE_L_X"/>
+    <motor name="M_LINK_HAND_BASE_L_Y" joint="J_LINK_HAND_BASE_L_Y"/>
+    <motor name="M_LINK_HAND_BASE_L_Z" joint="J_LINK_HAND_BASE_L_Z"/>
+    <motor name="M_LINK_HAND_BASE_L_ROLL" joint="J_LINK_HAND_BASE_L_ROLL"/>
+    <motor name="M_LINK_HAND_BASE_L_PITCH" joint="J_LINK_HAND_BASE_L_PITCH"/>
+    <motor name="M_LINK_HAND_BASE_L_YAW" joint="J_LINK_HAND_BASE_L_YAW"/>
     <!-- Left finger 0 -->
     <motor name="M_F0_L0" joint="J_F0_L0"/>
     <motor name="M_F0_L1" joint="J_F0_L1"/>
@@ -211,13 +211,13 @@
     <motor name="M_F2_L1" joint="J_F2_L1"/>
     <motor name="M_F2_L2" joint="J_F2_L2"/>
 
-    <!-- Right hand wrist (position control) -->
-    <position name="M_LINK_HAND_BASE_R_X" joint="J_LINK_HAND_BASE_R_X" kp="300" kv="10" forcerange="-50 50" ctrlrange="-0.05 0.05"/>
-    <position name="M_LINK_HAND_BASE_R_Y" joint="J_LINK_HAND_BASE_R_Y" kp="300" kv="10" forcerange="-50 50" ctrlrange="-0.05 0.05"/>
-    <position name="M_LINK_HAND_BASE_R_Z" joint="J_LINK_HAND_BASE_R_Z" kp="300" kv="10" forcerange="-50 50" ctrlrange="-0.05 0.05"/>
-    <position name="M_LINK_HAND_BASE_R_ROLL" joint="J_LINK_HAND_BASE_R_ROLL" kp="50" kv="0.5" forcerange="-50 50" ctrlrange="-0.5236 0.5236"/>
-    <position name="M_LINK_HAND_BASE_R_PITCH" joint="J_LINK_HAND_BASE_R_PITCH" kp="50" kv="0.5" forcerange="-50 50" ctrlrange="-0.5236 0.5236"/>
-    <position name="M_LINK_HAND_BASE_R_YAW" joint="J_LINK_HAND_BASE_R_YAW" kp="50" kv="0.5" forcerange="-50 50" ctrlrange="-0.5236 0.5236"/>
+    <!-- Right hand wrist (motor/torque control) -->
+    <motor name="M_LINK_HAND_BASE_R_X" joint="J_LINK_HAND_BASE_R_X"/>
+    <motor name="M_LINK_HAND_BASE_R_Y" joint="J_LINK_HAND_BASE_R_Y"/>
+    <motor name="M_LINK_HAND_BASE_R_Z" joint="J_LINK_HAND_BASE_R_Z"/>
+    <motor name="M_LINK_HAND_BASE_R_ROLL" joint="J_LINK_HAND_BASE_R_ROLL"/>
+    <motor name="M_LINK_HAND_BASE_R_PITCH" joint="J_LINK_HAND_BASE_R_PITCH"/>
+    <motor name="M_LINK_HAND_BASE_R_YAW" joint="J_LINK_HAND_BASE_R_YAW"/>
     <!-- Right finger 0 -->
     <motor name="M_F0_R0" joint="J_F0_R0"/>
     <motor name="M_F0_R1" joint="J_F0_R1"/>
