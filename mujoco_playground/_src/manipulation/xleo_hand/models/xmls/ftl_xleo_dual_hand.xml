@@ -6,7 +6,7 @@
       <geom type="mesh" contype="0" conaffinity="0" group="0" density="0" rgba="0.7 0.7 0.7 1"/>
     </default>
     <default class="collision">
-      <geom type="mesh" group="3" rgba="1 0.5 0 0.5"/>
+      <geom type="mesh" group="3" rgba="1 0.5 0 0.5" contype="1" conaffinity="0"/>
     </default>
     <default class="finger_joint">
       <joint damping="0.1" armature="0.01" actuatorfrcrange="-3 3" frictionloss="0.02"/>

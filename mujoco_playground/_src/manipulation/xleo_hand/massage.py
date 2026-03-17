@@ -8,7 +8,6 @@ import jax.numpy as jp
 from ml_collections import config_dict
 import mujoco
 from mujoco import mjx
-import numpy as np
 from etils import epath
 
 from mujoco_playground._src import mjx_env
@@ -60,7 +59,7 @@ def default_config() -> config_dict.ConfigDict:
           pert_wait_steps=[50, 150],
       ),
       impl="jax",
-      naconmax=30 * 8192,
+      naconmax=30 * 1024,
       njmax=160,
   )
 
@@ -81,66 +80,6 @@ def get_assets() -> Dict[str, bytes]:
   for f in convex_dir.glob("*.stl"):
     assets[f"convex_new/{f.name}"] = f.read_bytes()
   return assets
-
-
-# --- Rotation helpers (JAX) ------------------------------------------------
-
-
-def _axis_angle_to_quat(axis: jax.Array, angle: jax.Array) -> jax.Array:
-  """Convert axis-angle to quaternion [x, y, z, w].
-
-  Args:
-    axis: (N, 3) unit rotation axes.
-    angle: (N,) rotation angles in radians.
-
-  Returns:
-    (N, 4) quaternions in [x, y, z, w] format.
-  """
-  half = angle[..., None] * 0.5  # (N, 1)
-  xyz = axis * jp.sin(half)  # (N, 3)
-  w = jp.cos(half)  # (N, 1)
-  return jp.concatenate([xyz, w], axis=-1)
-
-
-def _quat_rotate(q: jax.Array, v: jax.Array) -> jax.Array:
-  """Rotate vector v by quaternion q. q is [x, y, z, w]."""
-  q_v = q[..., :3]
-  q_w = q[..., 3:]
-  t = 2.0 * jp.cross(q_v, v)
-  return v + q_w * t + jp.cross(q_v, t)
-
-
-def _quat_to_tan_norm(q: jax.Array) -> jax.Array:
-  """Convert quaternion [x, y, z, w] to 6D continuous rotation representation.
-
-  Returns the rotated [1,0,0] (tangent) and [0,0,1] (normal) vectors,
-  concatenated to give a 6D representation per quaternion.
-
-  Args:
-    q: (..., 4) quaternions.
-
-  Returns:
-    (..., 6) tan_norm vectors.
-  """
-  ref_tan = jp.zeros_like(q[..., :3]).at[..., 0].set(1.0)
-  ref_norm = jp.zeros_like(q[..., :3]).at[..., 2].set(1.0)
-  tan = _quat_rotate(q, ref_tan)
-  norm = _quat_rotate(q, ref_norm)
-  return jp.concatenate([tan, norm], axis=-1)
-
-
-def _hinge_to_tan_norm(angles: jax.Array, axes: jax.Array) -> jax.Array:
-  """Convert hinge joint angles to 6D rotation representation.
-
-  Args:
-    angles: (N,) joint angles.
-    axes: (N, 3) per-joint rotation axes.
-
-  Returns:
-    (N, 6) tan_norm representation.
-  """
-  q = _axis_angle_to_quat(axes, angles)
-  return _quat_to_tan_norm(q)
 
 
 class Massage(mjx_env.MjxEnv):
@@ -177,71 +116,53 @@ class Massage(mjx_env.MjxEnv):
     # Build per-joint kp/kd arrays for PD torque control.
     # Wrist: indices 0..5 (left) and 15..20 (right).
     # Fingers: indices 6..14 (left) and 21..29 (right).
-    kp = np.zeros(consts.NU)
-    kd = np.zeros(consts.NU)
-    wrist_ids = list(range(0, 6)) + list(range(15, 21))
-    finger_ids = list(range(6, 15)) + list(range(21, 30))
-    kp[wrist_ids] = self._config.wrist_kp
-    kd[wrist_ids] = self._config.wrist_kd
-    kp[finger_ids] = self._config.finger_kp
-    kd[finger_ids] = self._config.finger_kd
-    self._kp = jp.array(kp)
-    self._kd = jp.array(kd)
-
-    # Classify joints: slide (scalar) vs hinge (quat → 6D encoding).
-    # Indices are local to JOINT_NAMES (0..29).
-    slide_ids = []
-    hinge_ids = []
-    hinge_axes = []
-    for i, name in enumerate(consts.JOINT_NAMES):
-      jid = self._mj_model.joint(name).id
-      if self._mj_model.jnt_type[jid] == mujoco.mjtJoint.mjJNT_SLIDE:
-        slide_ids.append(i)
-      else:
-        hinge_ids.append(i)
-        hinge_axes.append(self._mj_model.jnt_axis[jid].copy())
-    self._slide_ids = jp.array(slide_ids, dtype=jp.int32)
-    self._hinge_ids = jp.array(hinge_ids, dtype=jp.int32)
-    self._hinge_axes = jp.array(np.array(hinge_axes))  # (N_hinge, 3)
-    # Encoded dim: n_slide * 1 + n_hinge * 6
-    self._encoded_pos_dim = len(slide_ids) + len(hinge_ids) * 6
+    wrist_ids = jp.array(list(range(0, 6)) + list(range(15, 21)))
+    finger_ids = jp.array(list(range(6, 15)) + list(range(21, 30)))
+    kp = jp.zeros(consts.NU)
+    kd = jp.zeros(consts.NU)
+    kp = kp.at[wrist_ids].set(self._config.wrist_kp)
+    kd = kd.at[wrist_ids].set(self._config.wrist_kd)
+    kp = kp.at[finger_ids].set(self._config.finger_kp)
+    kd = kd.at[finger_ids].set(self._config.finger_kd)
+    self._kp = kp
+    self._kd = kd
 
     # Per-joint termination margin: smaller for slide joints (meters)
     # than for hinge joints (radians).
-    jnt_margin = np.full(consts.NQ, 0.05)  # default: 0.05 rad for hinge
-    jnt_margin[slide_ids] = 0.01  # 0.01 m for slide
-    self._jnt_margin = jp.array(jnt_margin)
+    slide_ids = jp.array([
+        i
+        for i, name in enumerate(consts.JOINT_NAMES)
+        if self._mj_model.jnt_type[self._mj_model.joint(name).id]
+        == mujoco.mjtJoint.mjJNT_SLIDE
+    ])
+    jnt_margin = jp.full(consts.NQ, 0.05)  # default: 0.05 rad for hinge
+    jnt_margin = jnt_margin.at[slide_ids].set(0.01)  # 0.01 m for slide
+    self._jnt_margin = jnt_margin
 
-    # Load expert trajectory.
-    traj_path = consts.DATA_PATH / "massage_data.pkl"
+    # Load expert trajectory (already resampled to policy frequency).
+    traj_path = consts.DATA_PATH / "massage_traj.pkl"
     with open(epath.Path(traj_path), "rb") as f:
       traj = pickle.load(f)
+    traj_period = float(traj["duration"])
+    self._traj_period = traj_period
+    self._traj_omega = 2.0 * jp.pi / traj_period
+
     self._traj_qpos = jp.array(traj["qpos"])  # (T, 30)
     self._traj_qvel = jp.array(traj["qvel"])  # (T, 30)
     self._traj_len = self._traj_qpos.shape[0]
-    self._traj_data_freq = float(traj["data_freq"])
-    self._traj_period = float(traj["duration"])
-    self._traj_omega = 2.0 * jp.pi / self._traj_period
 
-    # Pre-compute reference body positions for the entire trajectory via CPU FK.
-    tracked_body_ids_np = np.array(
-        [self._mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
+    # Body ids for cartesian position tracking.
+    self._tracked_body_ids = jp.array(
+        [self._mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES],
+        dtype=jp.int32,
     )
-    self._tracked_body_ids = jp.array(tracked_body_ids_np, dtype=jp.int32)
-    traj_xpos = self._precompute_traj_body_pos(
-        traj["qpos"], tracked_body_ids_np
+    self._key_body_ids = jp.array(
+        [self._mj_model.body(n).id for n in consts.KEY_BODY_NAMES],
+        dtype=jp.int32,
     )
-    self._traj_xpos = jp.array(traj_xpos)  # (T, N_bodies, 3)
 
-    # Key bodies for key_pos reward (fingertips + wrists).
-    key_body_ids_np = np.array(
-        [self._mj_model.body(n).id for n in consts.KEY_BODY_NAMES]
-    )
-    self._key_body_ids = jp.array(key_body_ids_np, dtype=jp.int32)
-    traj_key_xpos = self._precompute_traj_body_pos(
-        traj["qpos"], key_body_ids_np
-    )
-    self._traj_key_xpos = jp.array(traj_key_xpos)  # (T, N_key, 3)
+    self._traj_xpos = jp.array(traj["tracked_body_xpos"])  # (T, 20, 3)
+    self._traj_key_xpos = jp.array(traj["key_body_xpos"])  # (T, 8, 3)
 
     # Fingertip body ids for perturbation forces.
     self._fingertip_body_ids = jp.array(
@@ -250,40 +171,17 @@ class Massage(mjx_env.MjxEnv):
     )
     self._n_fingertips = len(consts.FINGERTIP_BODY_NAMES)
 
-  def _precompute_traj_body_pos(
-      self, qpos_data: np.ndarray, body_ids: np.ndarray
-  ) -> np.ndarray:
-    """Run MuJoCo CPU FK on each trajectory frame to get tracked body xpos.
-
-    Args:
-      qpos_data: (T, 30) expert joint positions.
-      body_ids: (N_tracked,) body indices to extract.
-
-    Returns:
-      (T, N_tracked, 3) body positions for each frame.
-    """
-    mj_data = mujoco.MjData(self._mj_model)
-    T = qpos_data.shape[0]
-    n_bodies = len(body_ids)
-    xpos_all = np.zeros((T, n_bodies, 3))
-    for t in range(T):
-      # Set joint positions from trajectory.
-      mj_data.qpos[:] = self._mj_model.qpos0
-      mj_data.qpos[self._joint_qids] = qpos_data[t]
-      mj_data.qvel[:] = 0
-      mujoco.mj_forward(self._mj_model, mj_data)
-      xpos_all[t] = mj_data.xpos[body_ids]
-    return xpos_all
-
   def reset(self, rng: jax.Array) -> mjx_env.State:
-    # Random phase offset: start from a random point in the trajectory cycle.
+    # Random step offset: start from a random point in the trajectory cycle.
     rng, phase_rng, pos_rng, vel_rng, kp_rng, kd_rng = jax.random.split(rng, 6)
-    phase_offset = jax.random.uniform(
-        phase_rng, minval=0.0, maxval=self._traj_period
+    step_offset = jax.random.randint(
+        phase_rng, (), minval=0, maxval=self._traj_len
     )
 
-    # Get expert target at the random phase.
-    target_qpos, target_qvel = self._get_traj_target(phase_offset)
+    # Get expert target at the random step.
+    traj_idx = step_offset % self._traj_len
+    target_qpos = self._traj_qpos[traj_idx]
+    target_qvel = self._traj_qvel[traj_idx]
 
     # Initialize qpos from expert target + small perturbation, clipped to joint range.
     jnt_range_low = jp.array(self._mj_model.jnt_range[self._joint_ids, 0])
@@ -353,7 +251,7 @@ class Massage(mjx_env.MjxEnv):
     info = {
         "rng": rng,
         "step": 0,
-        "phase_offset": phase_offset,
+        "step_offset": step_offset,
         "last_act": jp.zeros(self.mjx_model.nu),
         "last_last_act": jp.zeros(self.mjx_model.nu),
         "kp": kp,
@@ -373,7 +271,7 @@ class Massage(mjx_env.MjxEnv):
     metrics["tracking_vel_error"] = jp.zeros(())
     metrics["max_body_pos_error"] = jp.zeros(())
 
-    obs = self._get_obs(data, info)
+    obs = self._get_obs(data, info, traj_idx, target_qpos, target_qvel)
     reward, done = jp.zeros(2)
 
     return mjx_env.State(data, obs, reward, done, metrics, info)
@@ -398,21 +296,33 @@ class Massage(mjx_env.MjxEnv):
     data = mjx_env.step(self.mjx_model, state.data, torque, self.n_substeps)
 
     # Increment step BEFORE computing obs/reward/termination so that
-    # sim_time = (step+1)*dt matches the post-step physics state.
+    # the trajectory index matches the post-step physics state.
     state.info["step"] += 1
 
+    # Compute trajectory index once, use everywhere.
+    traj_idx = (state.info["step"] + state.info["step_offset"]) % self._traj_len
+    target_qpos = self._traj_qpos[traj_idx]
+    target_qvel = self._traj_qvel[traj_idx]
+    ref_body_pos = self._traj_xpos[traj_idx]
+    ref_key_pos = self._traj_key_xpos[traj_idx]
+
     # Observations, termination, rewards.
-    obs = self._get_obs(data, state.info)
-    done = self._get_termination(data, state.info)
-    rewards = self._get_reward(data, action, state.info)
+    obs = self._get_obs(data, state.info, traj_idx, target_qpos, target_qvel)
+    done = self._get_termination(data, state.info, ref_body_pos)
+    rewards = self._get_reward(
+        data,
+        action,
+        state.info,
+        target_qpos,
+        target_qvel,
+        ref_key_pos,
+    )
     rewards = {
         k: v * self._config.reward_config.scales[k] for k, v in rewards.items()
     }
     reward = sum(rewards.values()) * self.dt if rewards else jp.zeros(())
 
     # Compute tracking errors for monitoring.
-    sim_time = state.info["step"] * self.dt + state.info["phase_offset"]
-    target_qpos, target_qvel = self._get_traj_target(sim_time)
     joint_pos = data.qpos[self._joint_qids]
     joint_vel = data.qvel[self._joint_dqids]
     state.metrics["tracking_pos_error"] = jp.mean(
@@ -422,7 +332,6 @@ class Massage(mjx_env.MjxEnv):
         jp.square(joint_vel - target_qvel)
     )
     # Body cartesian position error for monitoring.
-    ref_body_pos = self._get_traj_body_pos(sim_time)
     cur_body_pos = data.xpos[self._tracked_body_ids]
     body_dist_sq = jp.sum(jp.square(cur_body_pos - ref_body_pos), axis=-1)
     state.metrics["max_body_pos_error"] = jp.sqrt(jp.max(body_dist_sq))
@@ -439,7 +348,12 @@ class Massage(mjx_env.MjxEnv):
   # Helper methods. -----------------------------------------------------------
 
   def _get_obs(
-      self, data: mjx.Data, info: dict[str, Any]
+      self,
+      data: mjx.Data,
+      info: dict[str, Any],
+      traj_idx: jax.Array,
+      target_qpos: jax.Array,
+      target_qvel: jax.Array,
   ) -> mjx_env.Observation:
     # Current joint state.
     joint_pos = data.qpos[self._joint_qids]
@@ -455,47 +369,37 @@ class Massage(mjx_env.MjxEnv):
         * self._config.obs_noise.scales.joint_pos
     )
 
-    # Encode current joint positions: slide=scalar, hinge=quat→6D tan_norm.
-    cur_pos_encoded = self._encode_joint_pos(noisy_joint_pos_rel)
-
-    # Current simulation time.
-    sim_time = info["step"] * self.dt + info["phase_offset"]
-
-    # Future target observations (N steps ahead).
+    # Future target observations (N steps ahead) via direct indexing.
     tar_obs_list = []
     for step_offset in self._config.tar_obs_steps:
-      tar_time = sim_time + step_offset * self.dt
-      tar_qpos, tar_qvel = self._get_traj_target(tar_time)
+      future_idx = (traj_idx + step_offset) % self._traj_len
+      tar_qpos = self._traj_qpos[future_idx]
       tar_pos_rel = tar_qpos - self._default_pose
-      tar_pos_encoded = self._encode_joint_pos(tar_pos_rel)
-      tar_obs_list.append(tar_pos_encoded)
+      tar_obs_list.append(tar_pos_rel)
 
-    # Phase encoding.
-    phase = jp.array([
-        jp.sin(self._traj_omega * sim_time),
-        jp.cos(self._traj_omega * sim_time),
-    ])
+    # Phase encoding: use trajectory index to compute phase.
+    phase_angle = 2.0 * jp.pi * traj_idx / self._traj_len
+    phase = jp.array([jp.sin(phase_angle), jp.cos(phase_angle)])
 
-    # State for policy (662-dim).
+    # State for policy (182-dim).
     state_obs = jp.concatenate([
-        cur_pos_encoded,  # 150: slide(6) + hinge 6D(24×6=144)
-        joint_vel,  # 30
-        *tar_obs_list,  # 150 × 3 = 450: future target positions
-        phase,  # 2: [sin(ωt), cos(ωt)]
-        info["last_act"],  # 30
+        noisy_joint_pos_rel,  # 30: current joint positions (with noise)
+        joint_vel,  # 30: current joint velocities
+        # *tar_obs_list,  # 30 × 3 = 90: future target positions
+        phase,  # 2: [sin(phase), cos(phase)]
+        info["last_act"],  # 30: last action
     ])
 
     # Current-frame target for critic error computation.
-    target_qpos, target_qvel = self._get_traj_target(sim_time)
     qpos_error = joint_pos - target_qpos
     qvel_error = joint_vel - target_qvel
 
-    # Privileged state for critic (782-dim).
+    # Privileged state for critic (302-dim).
     # Includes uncorrupted joint state + tracking errors.
     privileged_state = jp.concatenate([
-        state_obs,  # 662
+        state_obs,  # 182: policy observation
         joint_pos_rel,  # 30: true joint pos (no noise)
-        joint_vel,  # 30: true joint vel
+        joint_vel,  # 30: true joint vel (repeated for critic)
         qpos_error,  # 30: position tracking error (no noise)
         qvel_error,  # 30: velocity tracking error
     ])
@@ -505,58 +409,12 @@ class Massage(mjx_env.MjxEnv):
         "privileged_state": privileged_state,
     }
 
-  def _encode_joint_pos(self, joint_pos_rel: jax.Array) -> jax.Array:
-    """Encode joint positions: slide as scalar, hinge as quat → 6D (tan_norm).
-    [1] Y. Zhou, C. Barnes, J. Lu, J. Yang, and H. Li, “On the Continuity of Rotation Representations in Neural Networks,” presented at the Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 2019, pp. 5745–5753. Accessed: Mar. 16, 2026. [Online]. Available: https://openaccess.thecvf.com/content_CVPR_2019/html/Zhou_On_the_Continuity_of_Rotation_Representations_in_Neural_Networks_CVPR_2019_paper.html
-    """
-    slide_vals = joint_pos_rel[self._slide_ids]  # (N_slide,)
-    hinge_angles = joint_pos_rel[self._hinge_ids]  # (N_hinge,)
-    hinge_6d = _hinge_to_tan_norm(
-        hinge_angles, self._hinge_axes
-    )  # (N_hinge, 6)
-    return jp.concatenate([slide_vals, hinge_6d.ravel()])
-
-  def _interp_traj(self, time: jax.Array, traj_array: jax.Array) -> jax.Array:
-    """Linearly interpolate a trajectory array at a given time.
-
-    Args:
-      time: scalar simulation time.
-      traj_array: (T, ...) trajectory data sampled at self._traj_data_freq.
-
-    Returns:
-      Interpolated value with shape matching traj_array[0].
-    """
-    traj_time = jp.mod(time, self._traj_period)
-    idx_f = traj_time * self._traj_data_freq
-    i0 = jp.floor(idx_f).astype(jp.int32)
-    i0 = jp.clip(i0, 0, self._traj_len - 2)
-    i1 = i0 + 1
-    alpha = idx_f - i0.astype(jp.float32)
-    return (1.0 - alpha) * traj_array[i0] + alpha * traj_array[i1]
-
-  def _get_traj_target(self, time: jax.Array):
-    """Get expert qpos/qvel at a given time via linear interpolation."""
-    target_qpos = self._interp_traj(time, self._traj_qpos)
-    target_qvel = self._interp_traj(time, self._traj_qvel)
-    return target_qpos, target_qvel
-
-  def _get_traj_body_pos(self, time: jax.Array) -> jax.Array:
-    """Get reference body positions at a given time via linear interpolation.
-
-    Returns:
-      (N_tracked, 3) body positions.
-    """
-    return self._interp_traj(time, self._traj_xpos)
-
-  def _get_traj_key_pos(self, time: jax.Array) -> jax.Array:
-    """Get reference key body positions at a given time via linear interpolation.
-
-    Returns:
-      (N_key, 3) key body positions.
-    """
-    return self._interp_traj(time, self._traj_key_xpos)
-
-  def _get_termination(self, data: mjx.Data, info: dict[str, Any]) -> jax.Array:
+  def _get_termination(
+      self,
+      data: mjx.Data,
+      info: dict[str, Any],
+      ref_body_pos: jax.Array,
+  ) -> jax.Array:
     # 1. NaN detection in qpos/qvel.
     nan_in_qpos = jp.any(jp.isnan(data.qpos))
     nan_in_qvel = jp.any(jp.isnan(data.qvel))
@@ -564,8 +422,6 @@ class Massage(mjx_env.MjxEnv):
 
     # 2. Body cartesian position error
     # Compare current body xpos with reference trajectory body xpos.
-    sim_time = info["step"] * self.dt + info["phase_offset"]
-    ref_body_pos = self._get_traj_body_pos(sim_time)  # (N_tracked, 3)
     cur_body_pos = data.xpos[self._tracked_body_ids]  # (N_tracked, 3)
     body_pos_diff = cur_body_pos - ref_body_pos
     body_pos_dist_sq = jp.sum(
@@ -637,12 +493,14 @@ class Massage(mjx_env.MjxEnv):
       data: mjx.Data,
       action: jax.Array,
       info: dict[str, Any],
+      target_qpos: jax.Array,
+      target_qvel: jax.Array,
+      ref_key_pos: jax.Array,
   ) -> dict[str, jax.Array]:
-    sim_time = info["step"] * self.dt + info["phase_offset"]
     return {
-        "pose": self._reward_pose(data, sim_time),
-        "vel": self._reward_vel(data, sim_time),
-        "key_pos": self._reward_key_pos(data, sim_time),
+        "pose": self._reward_pose(data, target_qpos),
+        "vel": self._reward_vel(data, target_qvel),
+        "key_pos": self._reward_key_pos(data, ref_key_pos),
         "action_rate": self._reward_action_rate(
             action, info["last_act"], info["last_last_act"]
         ),
@@ -651,27 +509,29 @@ class Massage(mjx_env.MjxEnv):
 
   # Reward functions. --------------------------------------------------------
 
-  def _reward_pose(self, data: mjx.Data, sim_time: jax.Array) -> jax.Array:
-    """Joint pose tracking in 6D encoding space: exp(-err / (2 * sigma²))."""
-    target_qpos, _ = self._get_traj_target(sim_time)
+  def _reward_pose(self, data: mjx.Data, target_qpos: jax.Array) -> jax.Array:
+    """Joint pose tracking in joint position space: exp(-err / (2 * sigma²)).
+
+    Computes squared difference directly on joint positions (radians for
+    hinge joints, meters for slide joints), following the DeepMimic reward
+    formulation instead of the 6D rotation encoding.
+    """
     joint_pos = data.qpos[self._joint_qids]
-    cur_encoded = self._encode_joint_pos(joint_pos - self._default_pose)
-    tar_encoded = self._encode_joint_pos(target_qpos - self._default_pose)
-    pose_err = jp.mean(jp.square(cur_encoded - tar_encoded))
+    pose_err = jp.mean(jp.square(joint_pos - target_qpos))
     sigma = self._config.reward_config.pose_sigma
     return jp.exp(-pose_err / (2.0 * sigma**2))
 
-  def _reward_vel(self, data: mjx.Data, sim_time: jax.Array) -> jax.Array:
+  def _reward_vel(self, data: mjx.Data, target_qvel: jax.Array) -> jax.Array:
     """Joint velocity tracking: exp(-err / (2 * sigma²))."""
-    _, target_qvel = self._get_traj_target(sim_time)
     joint_vel = data.qvel[self._joint_dqids]
     vel_err = jp.mean(jp.square(joint_vel - target_qvel))
     sigma = self._config.reward_config.vel_sigma
     return jp.exp(-vel_err / (2.0 * sigma**2))
 
-  def _reward_key_pos(self, data: mjx.Data, sim_time: jax.Array) -> jax.Array:
+  def _reward_key_pos(
+      self, data: mjx.Data, ref_key_pos: jax.Array
+  ) -> jax.Array:
     """Key body cartesian position tracking: exp(-err / (2 * sigma²))."""
-    ref_key_pos = self._get_traj_key_pos(sim_time)  # (N_key, 3)
     cur_key_pos = data.xpos[self._key_body_ids]  # (N_key, 3)
     key_pos_err = jp.mean(jp.sum(jp.square(cur_key_pos - ref_key_pos), axis=-1))
     sigma = self._config.reward_config.key_pos_sigma
@@ -719,7 +579,7 @@ def domain_randomize(model: mjx.Model, rng: jax.Array):
   ]
 
   # Hand body ids (all bodies except world=0 and human=last).
-  hand_body_ids = np.array(
+  hand_body_ids = jp.array(
       [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
   )
 

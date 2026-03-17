@@ -14,7 +14,12 @@ from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+import mujoco
 import numpy as np
+from etils import epath
+
+from mujoco_playground._src import mjx_env
+from mujoco_playground._src.manipulation.xleo_hand import constants as consts
 
 NUM_JOINTS = 30
 
@@ -156,6 +161,74 @@ def generate(cfg: MassageConfig) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# FK precomputation
+# ---------------------------------------------------------------------------
+
+
+def _get_assets():
+  """Load model assets (meshes, XMLs) for MuJoCo model construction."""
+  assets = {}
+  mjx_env.update_assets(
+      assets, consts.ROOT_PATH / "models" / "ftl_meshes", "*.stl"
+  )
+  mjx_env.update_assets(
+      assets, consts.ROOT_PATH / "models" / "ftl_meshes", "*.STL"
+  )
+  mjx_env.update_assets(assets, consts.ROOT_PATH / "models" / "xmls", "*.xml")
+  convex_dir = epath.Path(
+      consts.ROOT_PATH / "models" / "ftl_meshes" / "convex_new"
+  )
+  for f in convex_dir.glob("*.stl"):
+    assets[f"convex_new/{f.name}"] = f.read_bytes()
+  return assets
+
+
+def precompute_body_xpos(data: dict) -> dict:
+  """Run MuJoCo CPU FK on each trajectory frame to get body xpos.
+
+  Adds tracked_body_xpos, key_body_xpos, and body name lists to the data dict.
+
+  Args:
+    data: dict with "qpos" (T, 30), "data_freq", etc.
+
+  Returns:
+    The same dict with new keys added.
+  """
+  assets = _get_assets()
+  mj_model = mujoco.MjModel.from_xml_string(
+      epath.Path(consts.SCENE_XML.as_posix()).read_text(), assets=assets
+  )
+  mj_data = mujoco.MjData(mj_model)
+
+  joint_qids = mjx_env.get_qpos_ids(mj_model, consts.JOINT_NAMES)
+  tracked_body_ids = np.array(
+      [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
+  )
+  key_body_ids = np.array(
+      [mj_model.body(n).id for n in consts.KEY_BODY_NAMES]
+  )
+
+  qpos_data = data["qpos"]
+  T = qpos_data.shape[0]
+  tracked_xpos = np.zeros((T, len(tracked_body_ids), 3))
+  key_xpos = np.zeros((T, len(key_body_ids), 3))
+
+  for t in range(T):
+    mj_data.qpos[:] = mj_model.qpos0
+    mj_data.qpos[joint_qids] = qpos_data[t]
+    mj_data.qvel[:] = 0
+    mujoco.mj_forward(mj_model, mj_data)
+    tracked_xpos[t] = mj_data.xpos[tracked_body_ids]
+    key_xpos[t] = mj_data.xpos[key_body_ids]
+
+  data["tracked_body_xpos"] = tracked_xpos
+  data["key_body_xpos"] = key_xpos
+  data["tracked_body_names"] = list(consts.TRACKED_BODY_NAMES)
+  data["key_body_names"] = list(consts.KEY_BODY_NAMES)
+  return data
+
+
+# ---------------------------------------------------------------------------
 # Plotting
 # ---------------------------------------------------------------------------
 
@@ -257,6 +330,14 @@ def main():
       **{f.name: getattr(args, f.name) for f in fields(MassageConfig)}
   )
   data = generate(cfg)
+
+  # Pre-compute body positions via CPU FK.
+  print("Running FK precomputation for body positions...")
+  data = precompute_body_xpos(data)
+  print(
+      f"  tracked_body_xpos: {data['tracked_body_xpos'].shape}, "
+      f"key_body_xpos: {data['key_body_xpos'].shape}"
+  )
 
   with open(args.output, "wb") as fout:
     pickle.dump(data, fout)
