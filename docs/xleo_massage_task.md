@@ -11,7 +11,7 @@
 | `constants.py` | 关节/执行器/body 名称常量 |
 | `models/xmls/ftl_xleo_dual_hand.xml` | 双手 MJCF 模型 |
 | `models/xmls/ftl_xleo_dual_hand.scene.xml` | 场景（含地面、灯光、人体手臂） |
-| `data/massage_data.pkl` | 专家示教轨迹 |
+| `data/massage_traj.pkl` | 专家示教轨迹（已重采样至策略频率） |
 
 ---
 
@@ -87,20 +87,27 @@ PD 增益按部位区分：
 
 ## 4. 专家轨迹
 
-从 `massage_data.pkl` 加载，包含：
+从 `massage_traj.pkl` 加载（已预先重采样至策略频率），包含：
 - `qpos`: `(T, 30)` — 30 个关节的位置序列
 - `qvel`: `(T, 30)` — 30 个关节的速度序列
-- `data_freq`: 数据采样频率
+- `tracked_body_xpos`: `(T, 20, 3)` — 20 个 tracked body 的笛卡尔位置序列
+- `key_body_xpos`: `(T, 8, 3)` — 8 个 key body 的笛卡尔位置序列
 - `duration`: 轨迹周期（秒）
 
-轨迹为**周期性循环**，通过线性插值在任意时刻获取目标 `(qpos, qvel)`。
+轨迹为**周期性循环**，通过离散索引取模 (`traj_idx % traj_len`) 直接查表获取目标状态。
 
 ### 4.1 初始化
 
-Reset 时随机采样一个相位偏移 `phase_offset ∈ [0, period)`，从轨迹的随机位置开始：
+Reset 时随机采样一个整数步偏移 `step_offset ∈ [0, traj_len)`，从轨迹的随机位置开始：
 ```
-qpos₀ = expert_qpos(phase_offset) + N(0, 0.1)  (clipped to joint range)
-qvel₀ = expert_qvel(phase_offset) + N(0, 0.1)
+traj_idx = step_offset % traj_len
+qpos₀ = expert_qpos[traj_idx] + N(0, 0.1)  (clipped to joint range)
+qvel₀ = expert_qvel[traj_idx] + N(0, 0.1)
+```
+
+每个 step 中的轨迹索引计算：
+```
+traj_idx = (step + step_offset) % traj_len
 ```
 
 ---
@@ -109,52 +116,36 @@ qvel₀ = expert_qvel(phase_offset) + N(0, 0.1)
 
 采用 **Asymmetric Actor-Critic** 架构：policy 和 value 使用不同的观测。
 
-### 5.1 Policy 观测（`state`，662 维）
+### 5.1 Policy 观测（`state`，92 维）
 
 | 分量 | 维度 | 说明 |
 |------|------|------|
-| `cur_pos_encoded` | 150 | 当前关节位置编码（带噪声） |
+| `noisy_joint_pos_rel` | 30 | 当前关节位置（相对默认姿态，带噪声） |
 | `joint_vel` | 30 | 当前关节速度 |
-| `tar_obs[t+1]` | 150 | 未来 1 步目标位置编码 |
-| `tar_obs[t+2]` | 150 | 未来 2 步目标位置编码 |
-| `tar_obs[t+3]` | 150 | 未来 3 步目标位置编码 |
-| `phase` | 2 | `[sin(ωt), cos(ωt)]` 相位编码 |
+| `phase` | 2 | `[sin(2π × traj_idx / traj_len), cos(2π × traj_idx / traj_len)]` 相位编码 |
 | `last_act` | 30 | 上一步动作 |
-| **合计** | **662** | |
+| **合计** | **92** | |
 
-### 5.2 Value 观测（`privileged_state`，782 维）
+> **注意**：代码中计算了未来目标观测 `tar_obs_list`（`tar_obs_steps=[1,2,3]`，每步 30 维，共 90 维），但当前已从拼接中注释掉。若启用，policy 观测将为 182 维。
+
+### 5.2 Value 观测（`privileged_state`，212 维）
 
 | 分量 | 维度 | 说明 |
 |------|------|------|
-| `state_obs` | 662 | 完整 policy 观测 |
+| `state_obs` | 92 | 完整 policy 观测 |
 | `joint_pos_rel` | 30 | 真实关节位置（无噪声） |
-| `joint_vel` | 30 | 真实关节速度 |
+| `joint_vel` | 30 | 真实关节速度（重复，供 critic 使用） |
 | `qpos_error` | 30 | 位置跟踪误差（无噪声） |
 | `qvel_error` | 30 | 速度跟踪误差 |
-| **合计** | **782** | |
+| **合计** | **212** | |
 
-### 5.3 关节位置编码（150 维）
-
-为解决角度表示的不连续性问题（参考 Zhou et al., CVPR 2019 [1]），对关节位置采用混合编码：
-
-- **Slide 关节**（6 个）：直接使用标量值 → 6 维
-- **Hinge 关节**（24 个）：转换为四元数，再投影为 6D 连续旋转表示（tan-norm）→ 24×6 = 144 维
-
-```
-编码维度 = 6 (slide) + 24 × 6 (hinge 6D) = 150
-```
-
-6D 表示方法：将四元数旋转后的 `[1,0,0]`（tangent）和 `[0,0,1]`（normal）向量拼接。
-
-### 5.4 观测噪声
+### 5.3 观测噪声
 
 仅对 policy 观测中的 `joint_pos_rel` 添加均匀噪声：
 ```
 noise = U(-1, 1) × level(1.0) × scale(0.05)
 ```
 即 ±0.05 rad/m 的均匀扰动。Value 观测使用无噪声的真实值。
-
-> [1] Y. Zhou, C. Barnes, J. Lu, J. Yang, and H. Li, "On the Continuity of Rotation Representations in Neural Networks," CVPR 2019.
 
 ---
 
@@ -166,7 +157,7 @@ noise = U(-1, 1) × level(1.0) × scale(0.05)
 
 | 奖励项 | 权重 | 公式 | 含义 |
 |--------|------|------|------|
-| **pose** | +0.5 | `exp(-MSE(enc(q), enc(q*)) / (2 × 0.3²))` | 关节位置跟踪，使用 6D 编码（slide 标量 + hinge 6D tan-norm，共 150 维）计算误差，与观测编码一致（Gaussian kernel, σ=0.3） |
+| **pose** | +0.5 | `exp(-MSE(q, q*) / (2 × 0.3²))` | 关节位置跟踪，直接在关节位置空间计算 MSE（弧度/米），Gaussian kernel σ=0.3 |
 | **vel** | +0.1 | `exp(-MSE(q̇, q̇*) / (2 × 2.0²))` | 关节速度跟踪（σ=2.0） |
 | **key_pos** | +0.25 | `exp(-mean(‖x - x*‖²) / (2 × 0.1²))` | 关键 body 笛卡尔位置跟踪（σ=0.1） |
 | **action_rate** | -0.001 | `‖a - a_prev‖² + ‖a - 2a_prev + a_prev_prev‖²` | 动作平滑度惩罚（一阶+二阶差分） |
@@ -180,7 +171,7 @@ noise = U(-1, 1) × level(1.0) × scale(0.05)
 
 ### 6.3 设计理念
 
-- **pose + vel** 提供关节空间的稠密跟踪信号（pose 使用与观测相同的 6D 编码计算误差，避免角度不连续性问题；slide 关节保持标量，hinge 关节使用 6D tan-norm 表示）
+- **pose + vel** 提供关节空间的稠密跟踪信号（直接在关节位置空间计算 MSE，适用于 hinge 和 slide 关节）
 - **key_pos** 补充笛卡尔空间指尖位置约束，防止关节角正确但末端位置偏移
 - **action_rate** 鼓励平滑动作，二阶差分项抑制高频振荡
 - **energy** 鼓励高效运动，避免不必要的大力矩
@@ -239,7 +230,7 @@ done |= any(q < q_min - margin) or any(q > q_max + margin)
 | PD kd | 乘以 U(a,b) | [0.8, 1.2] |
 | 初始关节位置 | 专家 + N(0, σ) | σ = 0.1 |
 | 初始关节速度 | 专家 + N(0, σ) | σ = 0.1 |
-| 初始轨迹相位 | U(0, period) | 完整周期 |
+| 初始轨迹相位 | U(0, traj_len) | 整数步，完整周期 |
 
 ---
 
@@ -274,8 +265,8 @@ force = u(t) × magnitude × direction
 
 | 网络 | 输入 | 隐藏层 | 输出 |
 |------|------|--------|------|
-| Policy | `state` (662-dim) | [512, 256, 128] | 30-dim action |
-| Value | `privileged_state` (782-dim) | [512, 256, 128] | 1-dim value |
+| Policy | `state` (92-dim) | [512, 256, 128] | 30-dim action |
+| Value | `privileged_state` (212-dim) | [512, 256, 128] | 1-dim value |
 
 ---
 
@@ -301,7 +292,7 @@ force = u(t) × magnitude × direction
 
 | 参数 | 值 | 含义 |
 |------|---|------|
-| `naconmax` | 30 × 8192 = 245,760 | 最大活跃接触数（影响显存） |
+| `naconmax` | 30 × 1024 = 30,720 | 最大活跃接触数（影响显存） |
 | `njmax` | 160 | 最大约束数 |
 | `impl` | `"jax"` | 使用 JAX 后端 |
 

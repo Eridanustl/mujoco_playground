@@ -16,7 +16,6 @@ echo "Uploading project [${PROJECT_NAME}] to user [${USER_NAME}]..."
 rsync -avz \
     -e 'ssh -p16000' \
     --exclude 'logs/' \
-    --exclude 'data/' \
     --exclude 'outputs/' \
     --exclude '.git/' \
     --exclude '.venv/' \

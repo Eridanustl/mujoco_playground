@@ -9,6 +9,7 @@ from ml_collections import config_dict
 import mujoco
 from mujoco import mjx
 from etils import epath
+import math
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.manipulation.xleo_hand import constants as consts
@@ -36,16 +37,17 @@ def default_config() -> config_dict.ConfigDict:
       ),
       reward_config=config_dict.create(
           scales=config_dict.create(
-              pose=0.5,
-              vel=0.1,
-              key_pos=0.25,
-              action_rate=-0.001,
-              energy=-1e-4,
+              pose=2,
+              vel=1,
+              key_pos=1,
+              action_rate=-0.01,
+              action_smooth=-1e5,
+              energy=-1e-3,
           ),
           # Gaussian kernel sigma: r = exp(-err / (2 * sigma²)).
-          pose_sigma=0.3,
-          vel_sigma=2.0,
-          key_pos_sigma=0.1,
+          pose_sigma=math.sqrt(0.25),
+          vel_sigma=math.sqrt(0.25),
+          key_pos_sigma=math.sqrt(0.25),
       ),
       # Termination: max body cartesian position error (meters).
       pose_termination_dist=0.1,
@@ -318,9 +320,10 @@ class Massage(mjx_env.MjxEnv):
         ref_key_pos,
     )
     rewards = {
-        k: v * self._config.reward_config.scales[k] for k, v in rewards.items()
+        k: v * self._config.reward_config.scales[k] * self.dt
+        for k, v in rewards.items()
     }
-    reward = sum(rewards.values()) * self.dt if rewards else jp.zeros(())
+    sum_reward = sum(rewards.values()) if rewards else jp.zeros(())
 
     # Compute tracking errors for monitoring.
     joint_pos = data.qpos[self._joint_qids]
@@ -342,8 +345,8 @@ class Massage(mjx_env.MjxEnv):
     for k, v in rewards.items():
       state.metrics[f"reward/{k}"] = v
 
-    done = done.astype(reward.dtype)
-    return state.replace(data=data, obs=obs, reward=reward, done=done)
+    done = done.astype(sum_reward.dtype)
+    return state.replace(data=data, obs=obs, reward=sum_reward, done=done)
 
   # Helper methods. -----------------------------------------------------------
 
@@ -381,11 +384,10 @@ class Massage(mjx_env.MjxEnv):
     phase_angle = 2.0 * jp.pi * traj_idx / self._traj_len
     phase = jp.array([jp.sin(phase_angle), jp.cos(phase_angle)])
 
-    # State for policy (182-dim).
+    # State for policy (92-dim).
     state_obs = jp.concatenate([
         noisy_joint_pos_rel,  # 30: current joint positions (with noise)
         joint_vel,  # 30: current joint velocities
-        # *tar_obs_list,  # 30 × 3 = 90: future target positions
         phase,  # 2: [sin(phase), cos(phase)]
         info["last_act"],  # 30: last action
     ])
@@ -397,9 +399,8 @@ class Massage(mjx_env.MjxEnv):
     # Privileged state for critic (302-dim).
     # Includes uncorrupted joint state + tracking errors.
     privileged_state = jp.concatenate([
-        state_obs,  # 182: policy observation
+        state_obs,  # 92: policy observation
         joint_pos_rel,  # 30: true joint pos (no noise)
-        joint_vel,  # 30: true joint vel (repeated for critic)
         qpos_error,  # 30: position tracking error (no noise)
         qvel_error,  # 30: velocity tracking error
     ])
@@ -501,7 +502,8 @@ class Massage(mjx_env.MjxEnv):
         "pose": self._reward_pose(data, target_qpos),
         "vel": self._reward_vel(data, target_qvel),
         "key_pos": self._reward_key_pos(data, ref_key_pos),
-        "action_rate": self._reward_action_rate(
+        "action_rate": self._reward_action_rate(action, info["last_act"]),
+        "action_smooth": self._reward_action_smooth(
             action, info["last_act"], info["last_last_act"]
         ),
         "energy": self._reward_energy(data),
@@ -538,12 +540,16 @@ class Massage(mjx_env.MjxEnv):
     return jp.exp(-key_pos_err / (2.0 * sigma**2))
 
   def _reward_action_rate(
+      self, act: jax.Array, last_act: jax.Array
+  ) -> jax.Array:
+    """Action rate penalty (1st order): sum of squared first-order differences."""
+    return jp.sum(jp.square(act - last_act))
+
+  def _reward_action_smooth(
       self, act: jax.Array, last_act: jax.Array, last_last_act: jax.Array
   ) -> jax.Array:
-    """Action smoothness penalty: first + second order differences."""
-    c1 = jp.sum(jp.square(act - last_act))
-    c2 = jp.sum(jp.square(act - 2 * last_act + last_last_act))
-    return c1 + c2
+    """Action smoothness penalty (2nd order): sum of squared second-order differences."""
+    return jp.sum(jp.square(act - 2 * last_act + last_last_act))
 
   def _reward_energy(self, data: mjx.Data) -> jax.Array:
     """Energy consumption penalty: sum(|qvel * actuator_force|)."""
