@@ -157,3 +157,15 @@ FINGERTIP_BODY_NAMES = [
     "LINK_F1_R2",
     "LINK_F2_R2",
 ]
+
+# Body names for contact force tracking reward.
+CONTACT_FORCE_BODY_NAMES = [
+    "L_WRIST", "LINK_F1_L0", "LINK_F2_L0",
+    "R_WRIST", "LINK_F1_R0", "LINK_F2_R0",
+]
+
+# Sensor names for contact force tracking (force sensors in XML).
+CONTACT_FORCE_SENSOR_NAMES = [
+    "S_FORCE_L_WRIST", "S_FORCE_F1_L0", "S_FORCE_F2_L0",
+    "S_FORCE_R_WRIST", "S_FORCE_F1_R0", "S_FORCE_F2_R0",
+]

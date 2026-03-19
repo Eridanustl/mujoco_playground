@@ -6,6 +6,9 @@ tracked_body_xpos, key_body_xpos) to a target frequency (default 100 Hz)
 via linear interpolation. The resampled pkl can be loaded directly by
 massage.py without any runtime resampling.
 
+After resampling, plots each data field and saves the figures next to the
+output pkl.
+
 Usage:
     python resample_massage_data.py
     python resample_massage_data.py --target_freq 100.0
@@ -16,6 +19,7 @@ import argparse
 import pickle
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -88,20 +92,188 @@ def resample(data: dict, target_freq: float) -> dict:
         np.array(data["key_body_xpos"]), src_times, dst_times
     )
 
+  if "contact_force" in data:
+    result["contact_force"] = _resample_3d(
+        np.array(data["contact_force"]), src_times, dst_times
+    )
+
+  # Pass through string fields that don't need resampling.
+  for name_key in ("contact_sensor_names", "contact_body_names"):
+    if name_key in data:
+      result[name_key] = data[name_key]
+
   result["data_freq"] = target_freq
   return result
 
 
+def _plot_2d_grouped(arr: np.ndarray, times: np.ndarray, title: str,
+                     ylabel: str, groups: list[tuple[str, list[int], list[str]]],
+                     save_path: str) -> None:
+  """Plot a (T, D) array with semantic grouping.
+
+  Args:
+    groups: list of (group_title, column_indices, column_labels).
+  """
+  n_groups = len(groups)
+  fig, axes = plt.subplots(n_groups, 1, figsize=(14, 3.2 * n_groups),
+                           squeeze=False, sharex=True)
+  for g, (group_title, col_ids, col_labels) in enumerate(groups):
+    ax = axes[g, 0]
+    for idx, col in enumerate(col_ids):
+      ax.plot(times, arr[:, col], linewidth=0.7, label=col_labels[idx])
+    ax.set_ylabel(ylabel, fontsize=8)
+    ax.set_title(group_title, fontsize=10, loc="left", fontweight="bold")
+    ax.legend(fontsize=7, ncol=len(col_ids), loc="upper right")
+    ax.grid(True, alpha=0.3)
+  axes[-1, 0].set_xlabel("Time (s)")
+  fig.suptitle(title, fontsize=13)
+  fig.tight_layout()
+  fig.savefig(save_path, dpi=150)
+  plt.close(fig)
+  print(f"  Saved plot: {save_path}")
+
+
+def _plot_3d(arr: np.ndarray, times: np.ndarray, title: str,
+             body_names: list[str] | None, dim_labels: list[str] | None,
+             save_path: str) -> None:
+  """Plot a (T, N_bodies, D) array: one subplot per body."""
+  n_bodies = arr.shape[1]
+  n_dims = arr.shape[2]
+  if dim_labels is None:
+    dim_labels = [f"d{d}" for d in range(n_dims)]
+  fig, axes = plt.subplots(n_bodies, 1, figsize=(14, 2.8 * n_bodies),
+                           squeeze=False, sharex=True)
+  for b in range(n_bodies):
+    ax = axes[b, 0]
+    bname = body_names[b] if body_names else f"body {b}"
+    for d in range(n_dims):
+      ax.plot(times, arr[:, b, d], linewidth=0.6, label=dim_labels[d])
+    ax.set_ylabel(bname, fontsize=8)
+    ax.legend(fontsize=7, ncol=n_dims, loc="upper right")
+    ax.grid(True, alpha=0.3)
+  axes[-1, 0].set_xlabel("Time (s)")
+  fig.suptitle(title, fontsize=13)
+  fig.tight_layout()
+  fig.savefig(save_path, dpi=150)
+  plt.close(fig)
+  print(f"  Saved plot: {save_path}")
+
+
+# Semantic grouping for qpos/qvel (30 joints).
+# Each entry: (subplot_title, column_indices, column_labels)
+_JOINT_GROUPS = [
+    ("Left Wrist", list(range(0, 6)),
+     ["X", "Y", "Z", "Roll", "Pitch", "Yaw"]),
+    ("Left Finger 0", list(range(6, 9)),
+     ["F0_L0", "F0_L1", "F0_L2"]),
+    ("Left Finger 1", list(range(9, 12)),
+     ["F1_L0", "F1_L1", "F1_L2"]),
+    ("Left Finger 2", list(range(12, 15)),
+     ["F2_L0", "F2_L1", "F2_L2"]),
+    ("Right Wrist", list(range(15, 21)),
+     ["X", "Y", "Z", "Roll", "Pitch", "Yaw"]),
+    ("Right Finger 0", list(range(21, 24)),
+     ["F0_R0", "F0_R1", "F0_R2"]),
+    ("Right Finger 1", list(range(24, 27)),
+     ["F1_R0", "F1_R1", "F1_R2"]),
+    ("Right Finger 2", list(range(27, 30)),
+     ["F2_R0", "F2_R1", "F2_R2"]),
+]
+
+# Body names for tracked_body_xpos (20 bodies).
+_TRACKED_BODY_NAMES = [
+    "L_WRIST", "LINK_F0_L0", "LINK_F0_L1", "LINK_F0_L2",
+    "LINK_F1_L0", "LINK_F1_L1", "LINK_F1_L2",
+    "LINK_F2_L0", "LINK_F2_L1", "LINK_F2_L2",
+    "R_WRIST", "LINK_F0_R0", "LINK_F0_R1", "LINK_F0_R2",
+    "LINK_F1_R0", "LINK_F1_R1", "LINK_F1_R2",
+    "LINK_F2_R0", "LINK_F2_R1", "LINK_F2_R2",
+]
+
+# Body names for key_body_xpos (8 key bodies).
+_KEY_BODY_NAMES = [
+    "L_WRIST", "LINK_F0_L2", "LINK_F1_L2", "LINK_F2_L2",
+    "R_WRIST", "LINK_F0_R2", "LINK_F1_R2", "LINK_F2_R2",
+]
+
+
+def plot_all(data: dict, output_dir: Path) -> None:
+  """Plot all data fields and save figures to output_dir."""
+  freq = float(data["data_freq"])
+  T = data["qpos"].shape[0]
+  times = np.arange(T) / freq
+
+  print("Generating plots...")
+
+  # 1. qpos
+  _plot_2d_grouped(
+      data["qpos"], times,
+      title=f"Joint Positions (qpos) — {T} frames @ {freq} Hz",
+      ylabel="Position (rad/m)",
+      groups=_JOINT_GROUPS,
+      save_path=str(output_dir / "qpos.png"),
+  )
+
+  # 2. qvel
+  _plot_2d_grouped(
+      data["qvel"], times,
+      title=f"Joint Velocities (qvel) — {T} frames @ {freq} Hz",
+      ylabel="Velocity (rad·s⁻¹ / m·s⁻¹)",
+      groups=_JOINT_GROUPS,
+      save_path=str(output_dir / "qvel.png"),
+  )
+
+  # 3. tracked_body_xpos
+  if "tracked_body_xpos" in data:
+    _plot_3d(
+        data["tracked_body_xpos"], times,
+        title=f"Tracked Body Positions (xpos) — {T} frames @ {freq} Hz",
+        body_names=_TRACKED_BODY_NAMES,
+        dim_labels=["x", "y", "z"],
+        save_path=str(output_dir / "tracked_body_xpos.png"),
+    )
+
+  # 4. key_body_xpos
+  if "key_body_xpos" in data:
+    _plot_3d(
+        data["key_body_xpos"], times,
+        title=f"Key Body Positions (xpos) — {T} frames @ {freq} Hz",
+        body_names=_KEY_BODY_NAMES,
+        dim_labels=["x", "y", "z"],
+        save_path=str(output_dir / "key_body_xpos.png"),
+    )
+
+  # 5. contact_force
+  if "contact_force" in data:
+    # Try sensor names first (new format), then body names (legacy).
+    cf_names = data.get("contact_sensor_names",
+                        data.get("contact_body_names", None))
+    n_dims = data["contact_force"].shape[2] if data["contact_force"].ndim == 3 else 0
+    if n_dims == 3:
+      dim_labels = ["fx", "fy", "fz"]
+      src_label = "force sensor"
+    else:
+      dim_labels = ["fx", "fy", "fz", "tx", "ty", "tz"]
+      src_label = "cfrc_ext"
+    _plot_3d(
+        data["contact_force"], times,
+        title=f"Contact Forces ({src_label}) — {T} frames @ {freq} Hz",
+        body_names=cf_names,
+        dim_labels=dim_labels,
+        save_path=str(output_dir / "contact_force.png"),
+    )
+
+
 def main():
   data_dir = _project_root() / "data"
-  default_input = data_dir / "massage_data.pkl"
+  default_input = data_dir / "massage_replay_data.pkl"
   default_output = data_dir / "massage_traj.pkl"
   parser = argparse.ArgumentParser(
       description="Resample massage trajectory data to target frequency"
   )
   parser.add_argument(
       "--input", type=str, default=str(default_input),
-      help="Input pkl path (default: data/massage_data.pkl)",
+      help="Input pkl path (default: data/massage_replay_data.pkl)",
   )
   parser.add_argument(
       "--output", type=str, default=str(default_output),
@@ -110,6 +282,10 @@ def main():
   parser.add_argument(
       "--target_freq", type=float, default=100.0,
       help="Target sampling frequency in Hz (default: 100.0)",
+  )
+  parser.add_argument(
+      "--no_plot", action="store_true", default=False,
+      help="Skip plotting (default: False)",
   )
   args = parser.parse_args()
   output = args.output
@@ -127,9 +303,16 @@ def main():
 
   print(f"Saved {output}: {data['qpos'].shape[0]} frames, "
         f"{data['data_freq']} Hz")
-  for key in ["qpos", "qvel", "tracked_body_xpos", "key_body_xpos"]:
+  for key in ["qpos", "qvel", "tracked_body_xpos", "key_body_xpos", "contact_force"]:
     if key in data:
       print(f"  {key}: {data[key].shape}")
+
+  # Plot all data fields.
+  if not args.no_plot:
+    plot_dir = Path(output).parent / "plots"
+    plot_dir.mkdir(parents=True, exist_ok=True)
+    plot_all(data, plot_dir)
+    print(f"All plots saved to {plot_dir}/")
 
 
 if __name__ == "__main__":

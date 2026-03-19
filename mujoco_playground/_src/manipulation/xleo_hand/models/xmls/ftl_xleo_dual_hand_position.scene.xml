@@ -1,5 +1,5 @@
 <mujoco model="An empty scene">
-  <include file="ftl_xleo_dual_hand.xml" />
+  <include file="ftl_xleo_dual_hand_position.xml" />
 
   <default>
     <default class="convex_decomposition">

@@ -92,7 +92,7 @@ def _project_root() -> Path:
 @dataclass
 class MassageConfig:
   # Wrist Y-axis
-  wrist_amplitude: float = 0.1
+  wrist_amplitude: float = 0.05
   wrist_period: float = 2.0
   wrist_phase: float = 0.0
   # Finger base joints
@@ -204,9 +204,7 @@ def precompute_body_xpos(data: dict) -> dict:
   tracked_body_ids = np.array(
       [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
   )
-  key_body_ids = np.array(
-      [mj_model.body(n).id for n in consts.KEY_BODY_NAMES]
-  )
+  key_body_ids = np.array([mj_model.body(n).id for n in consts.KEY_BODY_NAMES])
 
   qpos_data = data["qpos"]
   T = qpos_data.shape[0]
@@ -346,7 +344,7 @@ def main():
   print(f"Saved {args.output}: {T} frames, {cfg.data_freq} Hz, {cfg.duration}s")
 
   # Plot trajectories and save to data/ folder
-  plot_dir = _project_root() / "data"
+  plot_dir = _project_root() / "data" / "plots"
   print(f"Plotting joint trajectories to {plot_dir} ...")
   plot_trajectories(data, plot_dir)
 
