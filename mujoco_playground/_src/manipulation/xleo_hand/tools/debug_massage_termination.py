@@ -12,12 +12,14 @@ import jax.numpy as jp
 import numpy as np
 
 from mujoco_playground import registry
+from mujoco_playground import wrapper
 
 
 def main():
   env_name = "XleoMassage"
   env_cfg = registry.get_default_config(env_name)
   env = registry.load(env_name, config=env_cfg)
+  env = wrapper.wrap_for_brax_training(env, full_reset=True)
 
   mj = env._mj_model
   joint_ids = env._joint_ids
@@ -38,8 +40,10 @@ def main():
   print()
 
   # Reset
+  # wrap_for_brax_training 使用 VmapWrapper，需要 batch 维度的 rng
   rng = jax.random.PRNGKey(0)
-  state = env.reset(rng)
+  rng = jax.random.split(rng, 1)  # 添加 batch 维度：shape (1, 2)
+  state = jax.jit(env.reset)(rng)
 
   # # Check qpos right after reset
   # qpos_after_reset = np.array(state.data.qpos[joint_qids])
@@ -88,15 +92,16 @@ def main():
   # print()
 
   # Step with zero action (should be safest)
-  step_fn = env.step
+  step_fn = jax.jit(env.step)
 
   # Test with random actions to simulate 1 step of training
   print("Test with random actions to simulate 1 step of training")
   rng = jax.random.PRNGKey(42)
   rng, act_rng = jax.random.split(rng)
   action = jax.random.uniform(
-      act_rng, (env.action_size,), minval=-1.0, maxval=1.0
-  )
+      act_rng, (1, env.action_size), minval=-1.0, maxval=1.0
+  )  # 添加 batch 维度：shape (1, action_size)
+  state = step_fn(state, action)
   state = step_fn(state, action)
 
   # # Test with random actions to simulate early training

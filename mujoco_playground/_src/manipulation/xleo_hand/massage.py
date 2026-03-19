@@ -52,9 +52,9 @@ def default_config() -> config_dict.ConfigDict:
           key_pos_sigma=math.sqrt(0.25),
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.1,
+      pose_termination_dist=1,
       terminate_on_nan=True,
-      terminate_on_pose=False,
+      terminate_on_pose=True,
       terminate_on_joint_limit=True,
       pert_config=config_dict.create(
           enable=False,
@@ -282,7 +282,6 @@ class Massage(mjx_env.MjxEnv):
 
     info = {
         "rng": rng,
-        "step": 0,
         "step_offset": step_offset,
         "last_act": jp.zeros(self.mjx_model.nu),
         "last_last_act": jp.zeros(self.mjx_model.nu),
@@ -346,7 +345,9 @@ class Massage(mjx_env.MjxEnv):
     data = mjx_env.step(self.mjx_model, state.data, torque, self.n_substeps)
 
     # Compute trajectory index once, use everywhere.
-    traj_idx = (state.info["step"] + state.info["step_offset"]) % self._traj_len
+    traj_idx = (
+        (state.info["steps"] + state.info["step_offset"]) % self._traj_len
+    ).astype(jp.int32)
     target_qpos = self._traj_qpos[traj_idx]
     target_qvel = self._traj_qvel[traj_idx]
     ref_body_pos = self._traj_xpos[traj_idx]
@@ -468,7 +469,7 @@ class Massage(mjx_env.MjxEnv):
     nan_in_qvel = jp.any(jp.isnan(data.qvel))
     nan_fail = jp.logical_or(nan_in_qpos, nan_in_qvel)
 
-    # 2. Body cartesian position error
+    # 2. Body cartesian position error TODO: wrist body only
     # Compare current body xpos with reference trajectory body xpos.
     cur_body_pos = data.xpos[self._tracked_body_ids]  # (N_tracked, 3)
     body_pos_diff = cur_body_pos - ref_body_pos
@@ -478,6 +479,12 @@ class Massage(mjx_env.MjxEnv):
     max_body_dist_sq = jp.max(body_pos_dist_sq)
     threshold_sq = self._config.pose_termination_dist**2
     pose_fail = max_body_dist_sq > threshold_sq
+    # jax.debug.print("cur_body_pos:{x}", x=cur_body_pos)
+    # jax.debug.print("ref_body_pos:{x}", x=ref_body_pos)
+    # jax.debug.print("body_pos_dist_sq:{x}", x=body_pos_dist_sq)
+    # jax.debug.print("max_body_dist_sq:{x}", x=max_body_dist_sq)
+    # jax.debug.print("threshold_sq:{x}", x=threshold_sq)
+    # jax.debug.print("pose_fail:{x}", x=pose_fail)
 
     # 3. Joint limit violation
     # Use different margins for slide (0.01m) and hinge (0.05rad) joints.
@@ -489,7 +496,8 @@ class Massage(mjx_env.MjxEnv):
     joint_fail = jp.logical_or(below_limit, above_limit)
 
     # Accumulate termination conditions controlled by config switches.
-    not_first_step = info["step"] > 0
+    not_first_step = info["steps"] > 0
+    # jax.debug.print("info[steps]:{x}", x=info["steps"])
 
     done = jp.zeros((), dtype=jp.bool_)
 
@@ -501,6 +509,8 @@ class Massage(mjx_env.MjxEnv):
 
     if self._config.terminate_on_joint_limit:
       done = done | (not_first_step & joint_fail)
+
+    # jax.debug.print("done:{x}", x=done)
 
     # Per-reason termination flags for diagnostics.
     term_reasons = {
@@ -514,14 +524,14 @@ class Massage(mjx_env.MjxEnv):
   def _maybe_apply_perturbation(self, state: mjx_env.State) -> mjx_env.State:
     """Apply periodic sinusoidal force perturbation to fingertip bodies."""
     info = state.info
-    step = info["step"]
+    steps = info["steps"]
     last_pert_step = info["last_pert_step"]
 
     # Check if a new perturbation should start.
-    start_pert = jp.mod(step, info["pert_wait_steps"]) == 0
-    start_pert &= step != 0  # No perturbation at step 0.
-    last_pert_step = jp.where(start_pert, step, last_pert_step)
-    duration = jp.clip(step - last_pert_step, 0, 100_000)
+    start_pert = jp.mod(steps, info["pert_wait_steps"]) == 0
+    start_pert &= steps != 0  # No perturbation at step 0.
+    last_pert_step = jp.where(start_pert, steps, last_pert_step)
+    duration = jp.clip(steps - last_pert_step, 0, 100_000)
     in_pert = duration < info["pert_duration_steps"]
 
     # Generate random perturbation directions for each fingertip.
