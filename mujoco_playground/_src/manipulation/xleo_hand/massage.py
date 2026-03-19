@@ -19,7 +19,8 @@ def default_config() -> config_dict.ConfigDict:
   return config_dict.create(
       ctrl_dt=0.01,
       sim_dt=0.002,
-      action_scale=0.5,
+      finger_action_scale=0.5,
+      wrist_action_scale=0.05,
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
@@ -49,7 +50,6 @@ def default_config() -> config_dict.ConfigDict:
           pose_sigma=math.sqrt(0.25),
           vel_sigma=math.sqrt(0.25),
           key_pos_sigma=math.sqrt(0.25),
-          contact_force_sigma=math.sqrt(0.25),
       ),
       # Termination: max body cartesian position error (meters).
       pose_termination_dist=0.1,
@@ -118,14 +118,15 @@ class Massage(mjx_env.MjxEnv):
         [self._mj_model.joint(n).id for n in consts.JOINT_NAMES],
         dtype=jp.int32,
     )
+    self._wrist_joint_ids = jp.array(
+        [self._mj_model.joint(n).id for n in consts.WRIST_NAMES],
+        dtype=jp.int32,
+    )
+    self._finger_joint_ids = jp.array(
+        [self._mj_model.joint(n).id for n in consts.FINGER_NAMES],
+        dtype=jp.int32,
+    )
     self._default_pose = jp.array(self._mj_model.qpos0[self._joint_qids])
-
-    # Per-joint action scale: action_scale * half_range so that action ∈ [-1,1]
-    # maps proportionally to each joint's range, regardless of units (m vs rad).
-    jnt_range_low = self._mj_model.jnt_range[self._joint_ids, 0]
-    jnt_range_high = self._mj_model.jnt_range[self._joint_ids, 1]
-    half_range = (jnt_range_high - jnt_range_low) / 2.0
-    self._action_scale = jp.array(half_range * self._config.action_scale)
 
     # Build per-joint kp/kd arrays for PD torque control.
     # Wrist: indices 0..5 (left) and 15..20 (right).
@@ -220,14 +221,14 @@ class Massage(mjx_env.MjxEnv):
     qpos = jp.array(self._mj_model.qpos0)
     qpos = qpos.at[self._joint_qids].set(
         jp.clip(
-            target_qpos + 0.1 * jax.random.normal(pos_rng, (consts.NQ,)),
+            target_qpos + 0.01 * jax.random.normal(pos_rng, (consts.NQ,)),
             jnt_range_low,
             jnt_range_high,
         )
     )
     qvel = jp.zeros(self._mj_model.nv)
     qvel = qvel.at[self._joint_dqids].set(
-        target_qvel + 0.1 * jax.random.normal(vel_rng, (consts.NV,))
+        target_qvel + 0.01 * jax.random.normal(vel_rng, (consts.NV,))
     )
 
     # All actuators are motors (torque control): zero torque at init.
@@ -316,9 +317,16 @@ class Massage(mjx_env.MjxEnv):
       state = self._maybe_apply_perturbation(state)
 
     # Policy outputs target joint positions relative to default pose.
-    # Per-joint scaling ensures action ∈ [-1,1] maps proportionally to each
-    # joint's range, regardless of units (meters vs radians).
-    position_targets = self._default_pose + action * self._action_scale
+    wrist_action = (
+        action[self._wrist_joint_ids] * self._config.wrist_action_scale
+    )
+    finger_action = (
+        action[self._finger_joint_ids] * self._config.finger_action_scale
+    )
+    action = action.at[self._wrist_joint_ids].set(wrist_action)
+    action = action.at[self._finger_joint_ids].set(finger_action)
+
+    position_targets = self._default_pose + action
     # Clip to joint limits so PD controller never drives past range.
     position_targets = jp.clip(
         position_targets,
@@ -337,17 +345,12 @@ class Massage(mjx_env.MjxEnv):
     # Step physics.
     data = mjx_env.step(self.mjx_model, state.data, torque, self.n_substeps)
 
-    # Increment step BEFORE computing obs/reward/termination so that
-    # the trajectory index matches the post-step physics state.
-    state.info["step"] += 1
-
     # Compute trajectory index once, use everywhere.
     traj_idx = (state.info["step"] + state.info["step_offset"]) % self._traj_len
     target_qpos = self._traj_qpos[traj_idx]
     target_qvel = self._traj_qvel[traj_idx]
     ref_body_pos = self._traj_xpos[traj_idx]
     ref_key_pos = self._traj_key_xpos[traj_idx]
-    ref_contact_force = self._traj_contact_force[traj_idx]
 
     # Observations, termination, rewards.
     obs = self._get_obs(data, state.info, traj_idx, target_qpos, target_qvel)
@@ -358,28 +361,26 @@ class Massage(mjx_env.MjxEnv):
         state.info,
         target_qpos,
         target_qvel,
-        ref_key_pos,
-        ref_contact_force,
     )
     rewards = {
-        k: v * self._config.reward_config.scales[k] * self.dt
-        for k, v in rewards.items()
+        key: value * self._config.reward_config.scales[key] * self.dt
+        for key, value in rewards.items()
     }
     sum_reward = sum(rewards.values()) if rewards else jp.zeros(())
 
     # Compute tracking errors for monitoring.
     joint_pos = data.qpos[self._joint_qids]
     joint_vel = data.qvel[self._joint_dqids]
-    state.metrics["tracking_pos_error"] = jp.mean(
+    state.metrics["tracking_pos_error"] += jp.mean(
         jp.square(joint_pos - target_qpos)
     )
-    state.metrics["tracking_vel_error"] = jp.mean(
+    state.metrics["tracking_vel_error"] += jp.mean(
         jp.square(joint_vel - target_qvel)
     )
     # Body cartesian position error for monitoring.
     cur_body_pos = data.xpos[self._tracked_body_ids]
     body_dist_sq = jp.sum(jp.square(cur_body_pos - ref_body_pos), axis=-1)
-    state.metrics["max_body_pos_error"] = jp.sqrt(jp.max(body_dist_sq))
+    state.metrics["max_body_pos_error"] += jp.sqrt(jp.max(body_dist_sq))
 
     # Termination reason diagnostics.
     for k, v in term_reasons.items():
@@ -554,19 +555,15 @@ class Massage(mjx_env.MjxEnv):
       info: dict[str, Any],
       target_qpos: jax.Array,
       target_qvel: jax.Array,
-      ref_key_pos: jax.Array,
-      ref_contact_force: jax.Array,
   ) -> dict[str, jax.Array]:
     return {
         "pose": self._reward_pose(data, target_qpos),
         "vel": self._reward_vel(data, target_qvel),
-        "key_pos": self._reward_key_pos(data, ref_key_pos),
         "action_rate": self._reward_action_rate(action, info["last_act"]),
         "action_smooth": self._reward_action_smooth(
             action, info["last_act"], info["last_last_act"]
         ),
         "energy": self._reward_energy(data),
-        "contact_force": self._reward_contact_force(data, ref_contact_force),
     }
 
   # Reward functions. --------------------------------------------------------
@@ -615,23 +612,6 @@ class Massage(mjx_env.MjxEnv):
     """Energy consumption penalty: sum(|qvel * actuator_force|)."""
     joint_vel = data.qvel[self._joint_dqids]
     return jp.sum(jp.abs(joint_vel * data.actuator_force))
-
-  def _reward_contact_force(
-      self, data: mjx.Data, ref_contact_force: jax.Array
-  ) -> jax.Array:
-    """Link contact force tracking (3D force from sensors): exp(-err / (2 * sigma^2)).
-
-    Uses force sensors in sensordata instead of cfrc_ext. Each sensor
-    outputs a 3D force vector (fx, fy, fz).
-    """
-    # Gather all 18 values at once using pre-computed static indices,
-    # then reshape to (6, 3).
-    cur_forces = data.sensordata[self._contact_force_sensor_indices].reshape(
-        6, 3
-    )
-    force_err = jp.mean(jp.square(cur_forces - ref_contact_force))
-    sigma = self._config.reward_config.contact_force_sigma
-    return jp.exp(-force_err / (2.0 * sigma**2))
 
   # Accessors. -----------------------------------------------------------------
 

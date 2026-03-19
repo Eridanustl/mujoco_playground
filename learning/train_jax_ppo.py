@@ -58,7 +58,7 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["MUJOCO_GL"] = "egl"
 
 # Ignore the info logs from brax
-logging.set_verbosity(logging.WARNING)
+logging.set_verbosity(logging.INFO)
 
 # Suppress warnings
 
@@ -391,7 +391,10 @@ def main(argv):
       seed=_SEED.value,
       restore_checkpoint_path=restore_checkpoint_path,
       save_checkpoint_path=ckpt_path,
-      wrap_env_fn=wrapper.wrap_for_brax_training,
+      # wrap_env_fn=wrapper.wrap_for_brax_training,
+      wrap_env_fn=functools.partial(
+          wrapper.wrap_for_brax_training, full_reset=True
+      ),
       num_eval_envs=num_eval_envs,
   )
 

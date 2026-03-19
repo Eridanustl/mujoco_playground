@@ -196,6 +196,14 @@ class BraxAutoResetWrapper(Wrapper):
 
       if 'steps' in next_info:
         next_info['steps'] = state.info['steps']
+
+      if 'episode_done' in state.info:
+        next_info['episode_done'] = state.info['episode_done']
+      if 'episode_metrics' in state.info:
+        next_info['episode_metrics'] = state.info['episode_metrics']
+      if 'truncation' in state.info:
+        next_info['truncation'] = state.info['truncation']
+
       preserve_info_key = f'{self._info_key}_preserve_info'
       if preserve_info_key in next_info:
         next_info[preserve_info_key] = state.info[preserve_info_key]
@@ -244,5 +252,3 @@ class BraxDomainRandomizationVmapWrapper(Wrapper):
         self._mjx_model_v, state, action
     )
     return res
-
-

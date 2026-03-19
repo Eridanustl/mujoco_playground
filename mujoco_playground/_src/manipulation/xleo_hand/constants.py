@@ -56,6 +56,9 @@ RIGHT_FINGER_JOINT_NAMES = [
     "J_F2_R2",
 ]
 
+
+WRIST_NAMES = LEFT_WRIST_JOINT_NAMES + RIGHT_WRIST_JOINT_NAMES
+FINGER_NAMES = LEFT_FINGER_JOINT_NAMES + RIGHT_FINGER_JOINT_NAMES
 # All joint names (30 total: 6+9 per hand)
 JOINT_NAMES = (
     LEFT_WRIST_JOINT_NAMES
@@ -160,12 +163,20 @@ FINGERTIP_BODY_NAMES = [
 
 # Body names for contact force tracking reward.
 CONTACT_FORCE_BODY_NAMES = [
-    "L_WRIST", "LINK_F1_L0", "LINK_F2_L0",
-    "R_WRIST", "LINK_F1_R0", "LINK_F2_R0",
+    "L_WRIST",
+    "LINK_F1_L0",
+    "LINK_F2_L0",
+    "R_WRIST",
+    "LINK_F1_R0",
+    "LINK_F2_R0",
 ]
 
 # Sensor names for contact force tracking (force sensors in XML).
 CONTACT_FORCE_SENSOR_NAMES = [
-    "S_FORCE_L_WRIST", "S_FORCE_F1_L0", "S_FORCE_F2_L0",
-    "S_FORCE_R_WRIST", "S_FORCE_F1_R0", "S_FORCE_F2_R0",
+    "S_FORCE_L_WRIST",
+    "S_FORCE_F1_L0",
+    "S_FORCE_F2_L0",
+    "S_FORCE_R_WRIST",
+    "S_FORCE_F1_R0",
+    "S_FORCE_F2_R0",
 ]
