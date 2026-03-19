@@ -91,6 +91,8 @@ def wrap_for_brax_training(
         Callable[[mjx.Model], Tuple[mjx.Model, mjx.Model]]
     ] = None,
     full_reset: bool = False,
+    random_init_steps: bool = False,
+    max_init_steps: int = 1000,
 ) -> Wrapper:
   """Common wrapper pattern for all brax training agents.
 
@@ -103,6 +105,11 @@ def wrap_for_brax_training(
     full_reset: whether to call `env.reset` during `env.step` on done rather
       than resetting to a cached first state. Setting full_reset=True may
       increase wallclock time because it forces full resets to random states.
+    random_init_steps: whether to randomize initial step count for each
+      parallel environment. When True, each environment starts from a different
+      step count, increasing training diversity.
+    max_init_steps: maximum value for random initial steps (only used when
+      random_init_steps=True).
 
   Returns:
     An environment that is wrapped with Episode and AutoReset wrappers.  If the
@@ -114,8 +121,46 @@ def wrap_for_brax_training(
   else:
     env = BraxDomainRandomizationVmapWrapper(env, randomization_fn)
   env = brax_training.EpisodeWrapper(env, episode_length, action_repeat)
+  if random_init_steps:
+    env = RandomInitStepsWrapper(env, max_init_steps=max_init_steps)
   env = BraxAutoResetWrapper(env, full_reset=full_reset)
   return env
+
+
+class RandomInitStepsWrapper(Wrapper):
+  """Randomizes the initial step count for each parallel environment.
+
+  This wrapper should be applied after EpisodeWrapper to ensure that each
+  environment in the batch starts from a different step count, increasing
+  training diversity.
+
+  Attributes:
+    env: The wrapped environment.
+    max_init_steps: Maximum value for random initial steps.
+  """
+
+  def __init__(self, env: Any, max_init_steps: int = 1000):
+    super().__init__(env)
+    self._max_init_steps = max_init_steps
+
+  def reset(self, rng: jax.Array) -> mjx_env.State:
+    # Handle batched rng keys using vmap.
+    rng_keys = jax.vmap(jax.random.split)(rng)
+    rng, steps_rng = rng_keys[..., 0], rng_keys[..., 1]
+    state = self.env.reset(rng)
+
+    # Generate random initial steps for each environment in the batch.
+    # Use vmap to handle batched keys.
+    init_steps = jax.vmap(
+        lambda key: jax.random.randint(
+            key, (), minval=0, maxval=self._max_init_steps
+        )
+    )(steps_rng).astype(jp.float32)
+
+    # Override the steps with random initial values.
+    state.info['steps'] = init_steps
+
+    return state
 
 
 class BraxAutoResetWrapper(Wrapper):

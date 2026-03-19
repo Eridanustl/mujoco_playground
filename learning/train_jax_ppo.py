@@ -393,7 +393,10 @@ def main(argv):
       save_checkpoint_path=ckpt_path,
       # wrap_env_fn=wrapper.wrap_for_brax_training,
       wrap_env_fn=functools.partial(
-          wrapper.wrap_for_brax_training, full_reset=True
+          wrapper.wrap_for_brax_training,
+          full_reset=True,
+          random_init_steps=True,
+          max_init_steps=ppo_params.episode_length,
       ),
       num_eval_envs=num_eval_envs,
   )
