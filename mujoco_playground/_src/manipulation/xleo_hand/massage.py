@@ -44,7 +44,7 @@ def default_config() -> config_dict.ConfigDict:
               root_vel=0.1,
               key_pos=0.15,
               # Regularization penalties (unchanged).
-              action_rate=-10,
+              action_rate=-0.01,
               # action_smooth=-1e-4,
               # energy=-1e-6
           ),
@@ -60,7 +60,7 @@ def default_config() -> config_dict.ConfigDict:
           finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=1,
+      pose_termination_dist=0.05,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
@@ -226,6 +226,10 @@ class Massage(mjx_env.MjxEnv):
         self._config.reward_config.finger_err_w, dtype=jp.float32
     )
 
+    # Actuator torque limits from ctrlrange.
+    self._torque_low = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
+    self._torque_high = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
+
   def reset(self, rng: jax.Array) -> mjx_env.State:
     # Random step offset: start from a random point in the trajectory cycle.
     rng, phase_rng, pos_rng, vel_rng, kp_rng, kd_rng = jax.random.split(rng, 6)
@@ -362,6 +366,7 @@ class Massage(mjx_env.MjxEnv):
         state.info["kp"] * (position_targets - joint_pos)
         - state.info["kd"] * joint_vel
     )
+    torque = jp.clip(torque, self._torque_low, self._torque_high)
 
     # Step physics.
     data = mjx_env.step(self.mjx_model, state.data, torque, self.n_substeps)

@@ -7,4 +7,4 @@ mujoco_menagerie
 checkpoints/
 logs
 .vscode
-.claude
+.claudeMJMODEL.TXT
