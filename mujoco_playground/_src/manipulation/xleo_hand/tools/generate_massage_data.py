@@ -68,6 +68,38 @@ JOINT_NAMES = {
     27: "J_F2_R0",
 }
 
+# Joint groups for grouped subplot layout (matching qpos.png reference style)
+JOINT_GROUPS = [
+    (
+        "Left Wrist",
+        [
+            (0, "X"),
+            (1, "Y"),
+            (2, "Z"),
+            (3, "Roll"),
+            (4, "Pitch"),
+            (5, "Yaw"),
+        ],
+    ),
+    ("Left Finger 0", [(6, "F0_L0"), (7, "F0_L1"), (8, "F0_L2")]),
+    ("Left Finger 1", [(9, "F1_L0"), (10, "F1_L1"), (11, "F1_L2")]),
+    ("Left Finger 2", [(12, "F2_L0"), (13, "F2_L1"), (14, "F2_L2")]),
+    (
+        "Right Wrist",
+        [
+            (15, "X"),
+            (16, "Y"),
+            (17, "Z"),
+            (18, "Roll"),
+            (19, "Pitch"),
+            (20, "Yaw"),
+        ],
+    ),
+    ("Right Finger 0", [(21, "F0_R0"), (22, "F0_R1"), (23, "F0_R2")]),
+    ("Right Finger 1", [(24, "F1_R0"), (25, "F1_R1"), (26, "F1_R2")]),
+    ("Right Finger 2", [(27, "F2_R0"), (28, "F2_R1"), (29, "F2_R2")]),
+]
+
 
 # ---------------------------------------------------------------------------
 # Project root helper
@@ -231,72 +263,77 @@ def precompute_body_xpos(data: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def _joint_name(idx: int) -> str:
-  return JOINT_NAMES.get(idx, f"joint_{idx}")
+def _plot_grouped(
+    data_array: np.ndarray,
+    freq: float,
+    title: str,
+    ylabel: str,
+    output_path: Path,
+) -> None:
+  """Plot grouped subplots matching the qpos.png reference style.
+
+  Each body-part group gets one subplot row. Multiple joints within a group
+  are overlaid as separate colored lines with a legend.
+
+  Args:
+    data_array: (T, NUM_JOINTS) array of qpos or qvel.
+    freq: Sampling frequency in Hz.
+    title: Overall figure title.
+    ylabel: Y-axis label for every subplot.
+    output_path: Where to save the figure.
+  """
+  n_groups = len(JOINT_GROUPS)
+  T = data_array.shape[0]
+  t = np.arange(T) / freq
+
+  fig, axes = plt.subplots(
+      n_groups, 1, figsize=(10, 2.4 * n_groups), sharex=True
+  )
+  if n_groups == 1:
+    axes = [axes]
+
+  for ax, (group_name, joints) in zip(axes, JOINT_GROUPS):
+    for idx, label in joints:
+      ax.plot(t, data_array[:, idx], linewidth=1.5, label=label)
+    ax.set_ylabel(ylabel, fontsize=10)
+    ax.set_title(group_name, fontsize=11, fontweight="bold", loc="left")
+    ax.legend(fontsize=8, loc="upper right", ncol=len(joints), framealpha=0.8)
+    ax.grid(True, alpha=0.3)
+
+  axes[-1].set_xlabel("Time (s)", fontsize=11)
+  fig.suptitle(
+      f"{title} \u2014 {T} frames @ {freq} Hz",
+      fontsize=13,
+      fontweight="bold",
+  )
+  fig.tight_layout()
+  fig.savefig(output_path, dpi=150)
+  plt.close(fig)
+  print(f"  Saved {output_path.name}")
 
 
 def plot_trajectories(data: dict, output_dir: Path) -> None:
-  """Plot qpos and qvel curves for each active joint and save to output_dir."""
+  """Plot qpos and qvel curves grouped by body part and save to output_dir."""
   output_dir.mkdir(parents=True, exist_ok=True)
-  qpos = data["qpos"]
-  qvel = data["qvel"]
   freq = data["data_freq"]
-  T = qpos.shape[0]
-  t = np.arange(T) / freq
 
-  # Identify active joints (any non-zero qpos or qvel)
-  active_indices = [
-      j
-      for j in range(NUM_JOINTS)
-      if np.any(qpos[:, j] != 0) or np.any(qvel[:, j] != 0)
-  ]
+  # Grouped qpos plot (matches data/plots/qpos.png style)
+  _plot_grouped(
+      data["qpos"],
+      freq,
+      "Joint Positions (qpos)",
+      "Position (rad/m)",
+      output_dir / "120hz_qpos.png",
+  )
 
-  # Plot each active joint individually
-  for j in active_indices:
-    name = _joint_name(j)
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
-
-    ax1.plot(t, qpos[:, j], color="tab:blue", linewidth=1.5)
-    ax1.set_ylabel("Position (rad)", fontsize=12)
-    ax1.set_title(f"Joint {j}: {name} - Position", fontsize=13)
-    ax1.grid(True, alpha=0.3)
-
-    ax2.plot(t, qvel[:, j], color="tab:orange", linewidth=1.5)
-    ax2.set_ylabel("Velocity (rad/s)", fontsize=12)
-    ax2.set_xlabel("Time (s)", fontsize=12)
-    ax2.set_title(f"Joint {j}: {name} - Velocity", fontsize=13)
-    ax2.grid(True, alpha=0.3)
-
-    fig.tight_layout()
-    fig.savefig(output_dir / f"joint_{j}_{name}.png", dpi=150)
-    plt.close(fig)
-    print(f"  Saved joint_{j}_{name}.png")
-
-  # Plot all active joints together in one overview figure
-  n = len(active_indices)
-  fig, axes = plt.subplots(n, 2, figsize=(14, 3 * n), sharex=True)
-  if n == 1:
-    axes = axes.reshape(1, -1)
-
-  for row, j in enumerate(active_indices):
-    name = _joint_name(j)
-    axes[row, 0].plot(t, qpos[:, j], color="tab:blue", linewidth=1.2)
-    axes[row, 0].set_ylabel("rad", fontsize=10)
-    axes[row, 0].set_title(f"{name} - Position", fontsize=11)
-    axes[row, 0].grid(True, alpha=0.3)
-
-    axes[row, 1].plot(t, qvel[:, j], color="tab:orange", linewidth=1.2)
-    axes[row, 1].set_ylabel("rad/s", fontsize=10)
-    axes[row, 1].set_title(f"{name} - Velocity", fontsize=11)
-    axes[row, 1].grid(True, alpha=0.3)
-
-  axes[-1, 0].set_xlabel("Time (s)", fontsize=11)
-  axes[-1, 1].set_xlabel("Time (s)", fontsize=11)
-  fig.suptitle("Massage Trajectory - All Active Joints", fontsize=14, y=1.0)
-  fig.tight_layout()
-  fig.savefig(output_dir / "all_joints_overview.png", dpi=150)
-  plt.close(fig)
-  print(f"  Saved all_joints_overview.png")
+  # Grouped qvel plot (same layout)
+  _plot_grouped(
+      data["qvel"],
+      freq,
+      "Joint Velocities (qvel)",
+      "Velocity (rad/s)",
+      output_dir / "120hz_qvel.png",
+  )
 
 
 # ---------------------------------------------------------------------------

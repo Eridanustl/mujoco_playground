@@ -52,10 +52,9 @@ def default_config() -> config_dict.ConfigDict:
           key_pos_sigma=math.sqrt(0.25),
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=1,
+      pose_termination_dist=0.05,
       terminate_on_nan=True,
       terminate_on_pose=True,
-      terminate_on_joint_limit=True,
       pert_config=config_dict.create(
           enable=False,
           # Force magnitude applied to fingertip bodies (N).
@@ -141,13 +140,6 @@ class Massage(mjx_env.MjxEnv):
     kd = kd.at[finger_ids].set(self._config.finger_kd)
     self._kp = kp
     self._kd = kd
-
-    # Per-joint termination margin: 50% of half-range, so the effective
-    # termination boundary is [low - margin, high + margin].  This avoids
-    # premature termination for narrow-range joints (e.g. wrist slides ±5 cm).
-    jnt_range_low = self._mj_model.jnt_range[self._joint_ids, 0]
-    jnt_range_high = self._mj_model.jnt_range[self._joint_ids, 1]
-    self._jnt_margin = jp.array((jnt_range_high - jnt_range_low) * 0.5)
 
     # Load expert trajectory (already resampled to policy frequency).
     traj_path = consts.DATA_PATH / "massage_traj.pkl"
@@ -303,7 +295,6 @@ class Massage(mjx_env.MjxEnv):
     metrics["max_body_pos_error"] = jp.zeros(())
     metrics["term/nan"] = jp.zeros(())
     metrics["term/pose"] = jp.zeros(())
-    metrics["term/joint_limit"] = jp.zeros(())
 
     obs = self._get_obs(data, info, traj_idx, target_qpos, target_qvel)
     reward, done = jp.zeros(2)
@@ -509,8 +500,6 @@ class Massage(mjx_env.MjxEnv):
         r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,
-        # Phase (2,)
-        phase,
         # Future targets (36 * num_target_steps,)
         target_obs,
         # Last action (30,)
@@ -518,11 +507,6 @@ class Massage(mjx_env.MjxEnv):
     ])
 
     # === Privileged critic observation ===
-    # Actor obs + clean joint state + tracking errors.
-    joint_pos_rel = joint_pos - self._default_pose
-    qpos_error = joint_pos - target_qpos
-    qvel_error = joint_vel - target_qvel
-
     privileged_state = jp.concatenate([
         state_obs,  # full actor observation
     ])
@@ -538,61 +522,30 @@ class Massage(mjx_env.MjxEnv):
       info: dict[str, Any],
       ref_body_pos: jax.Array,
   ) -> tuple[jax.Array, dict[str, jax.Array]]:
-    # 1. NaN detection in qpos/qvel.
-    nan_in_qpos = jp.any(jp.isnan(data.qpos))
-    nan_in_qvel = jp.any(jp.isnan(data.qvel))
-    nan_fail = jp.logical_or(nan_in_qpos, nan_in_qvel)
+    # 1. NaN safety check (MJX can produce NaN on simulation divergence).
+    nan_fail = jp.any(jp.isnan(data.qpos)) | jp.any(jp.isnan(data.qvel))
 
-    # 2. Body cartesian position error TODO: wrist body only
-    # Compare current body xpos with reference trajectory body xpos.
-    cur_body_pos = data.xpos[self._tracked_body_ids]  # (N_tracked, 3)
+    # 2. Pose termination: max tracked-body cartesian position error.
+    cur_body_pos = data.xpos[self._tracked_body_ids]
     body_pos_diff = cur_body_pos - ref_body_pos
-    body_pos_dist_sq = jp.sum(
-        body_pos_diff * body_pos_diff, axis=-1
-    )  # (N_tracked,)
+    body_pos_dist_sq = jp.sum(body_pos_diff * body_pos_diff, axis=-1)
     max_body_dist_sq = jp.max(body_pos_dist_sq)
     threshold_sq = self._config.pose_termination_dist**2
     pose_fail = max_body_dist_sq > threshold_sq
-    # jax.debug.print("cur_body_pos:{x}", x=cur_body_pos)
-    # jax.debug.print("ref_body_pos:{x}", x=ref_body_pos)
-    # jax.debug.print("body_pos_dist_sq:{x}", x=body_pos_dist_sq)
-    # jax.debug.print("max_body_dist_sq:{x}", x=max_body_dist_sq)
-    # jax.debug.print("threshold_sq:{x}", x=threshold_sq)
-    # jax.debug.print("pose_fail:{x}", x=pose_fail)
 
-    # 3. Joint limit violation
-    # Use different margins for slide (0.01m) and hinge (0.05rad) joints.
-    joint_pos = data.qpos[self._joint_qids]
-    jnt_range_low = self._mj_model.jnt_range[self._joint_ids, 0]
-    jnt_range_high = self._mj_model.jnt_range[self._joint_ids, 1]
-    below_limit = jp.any(joint_pos < jnt_range_low - self._jnt_margin)
-    above_limit = jp.any(joint_pos > jnt_range_high + self._jnt_margin)
-    joint_fail = jp.logical_or(below_limit, above_limit)
-
-    # Accumulate termination conditions controlled by config switches.
+    # Only fail after first timestep (MimicKit: not_first_step guard).
     not_first_step = info["steps"] > 0
-    # jax.debug.print("info[steps]:{x}", x=info["steps"])
 
     done = jp.zeros((), dtype=jp.bool_)
-
     if self._config.terminate_on_nan:
       done = done | nan_fail
-
     if self._config.terminate_on_pose:
       done = done | (not_first_step & pose_fail)
 
-    if self._config.terminate_on_joint_limit:
-      done = done | (not_first_step & joint_fail)
-
-    # jax.debug.print("done:{x}", x=done)
-
-    # Per-reason termination flags for diagnostics.
     term_reasons = {
         "term/nan": nan_fail.astype(jp.float32),
         "term/pose": (not_first_step & pose_fail).astype(jp.float32),
-        "term/joint_limit": (not_first_step & joint_fail).astype(jp.float32),
     }
-
     return done.astype(jp.float32), term_reasons
 
   def _maybe_apply_perturbation(self, state: mjx_env.State) -> mjx_env.State:

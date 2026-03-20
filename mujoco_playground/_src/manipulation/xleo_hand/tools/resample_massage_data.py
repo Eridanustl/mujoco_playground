@@ -33,8 +33,9 @@ def _project_root() -> Path:
   raise RuntimeError("Cannot find project root (no .git found)")
 
 
-def _resample_2d(src: np.ndarray, src_times: np.ndarray,
-                 dst_times: np.ndarray) -> np.ndarray:
+def _resample_2d(
+    src: np.ndarray, src_times: np.ndarray, dst_times: np.ndarray
+) -> np.ndarray:
   """Resample (T_src, D) array to (T_dst, D) via per-column linear interp."""
   return np.stack(
       [np.interp(dst_times, src_times, src[:, j]) for j in range(src.shape[1])],
@@ -42,8 +43,9 @@ def _resample_2d(src: np.ndarray, src_times: np.ndarray,
   )
 
 
-def _resample_3d(src: np.ndarray, src_times: np.ndarray,
-                 dst_times: np.ndarray) -> np.ndarray:
+def _resample_3d(
+    src: np.ndarray, src_times: np.ndarray, dst_times: np.ndarray
+) -> np.ndarray:
   """Resample (T_src, N, 3) array to (T_dst, N, 3) via linear interp."""
   T_dst = len(dst_times)
   out = np.zeros((T_dst, src.shape[1], src.shape[2]))
@@ -76,8 +78,10 @@ def resample(data: dict, target_freq: float) -> dict:
   src_times = np.arange(src_len) / src_freq
   dst_times = np.arange(dst_len) / target_freq
 
-  print(f"Resampling: {src_freq} Hz ({src_len} frames) -> "
-        f"{target_freq} Hz ({dst_len} frames), duration={duration}s")
+  print(
+      f"Resampling: {src_freq} Hz ({src_len} frames) -> "
+      f"{target_freq} Hz ({dst_len} frames), duration={duration}s"
+  )
 
   result = dict(data)  # shallow copy
   result["qpos"] = _resample_2d(np.array(data["qpos"]), src_times, dst_times)
@@ -106,53 +110,74 @@ def resample(data: dict, target_freq: float) -> dict:
   return result
 
 
-def _plot_2d_grouped(arr: np.ndarray, times: np.ndarray, title: str,
-                     ylabel: str, groups: list[tuple[str, list[int], list[str]]],
-                     save_path: str) -> None:
+def _plot_2d_grouped(
+    arr: np.ndarray,
+    times: np.ndarray,
+    title: str,
+    ylabel: str,
+    groups: list[tuple[str, list[int], list[str]]],
+    save_path: str,
+) -> None:
   """Plot a (T, D) array with semantic grouping.
 
   Args:
     groups: list of (group_title, column_indices, column_labels).
   """
   n_groups = len(groups)
-  fig, axes = plt.subplots(n_groups, 1, figsize=(14, 3.2 * n_groups),
-                           squeeze=False, sharex=True)
+  fig, axes = plt.subplots(
+      n_groups, 1, figsize=(14, 3.2 * n_groups), squeeze=False, sharex=True
+  )
   for g, (group_title, col_ids, col_labels) in enumerate(groups):
     ax = axes[g, 0]
     for idx, col in enumerate(col_ids):
-      ax.plot(times, arr[:, col], linewidth=0.7, label=col_labels[idx])
-    ax.set_ylabel(ylabel, fontsize=8)
-    ax.set_title(group_title, fontsize=10, loc="left", fontweight="bold")
-    ax.legend(fontsize=7, ncol=len(col_ids), loc="upper right")
+      ax.plot(times, arr[:, col], linewidth=1.5, label=col_labels[idx])
+    ax.set_ylabel(ylabel, fontsize=12)
+    ax.set_title(group_title, fontsize=14, loc="left", fontweight="bold")
+    ax.legend(fontsize=10, ncol=len(col_ids), loc="upper right")
     ax.grid(True, alpha=0.3)
-  axes[-1, 0].set_xlabel("Time (s)")
-  fig.suptitle(title, fontsize=13)
+    ax.tick_params(labelsize=10)
+  axes[-1, 0].set_xlabel("Time (s)", fontsize=12)
+  fig.suptitle(title, fontsize=16)
   fig.tight_layout()
   fig.savefig(save_path, dpi=150)
   plt.close(fig)
   print(f"  Saved plot: {save_path}")
 
 
-def _plot_3d(arr: np.ndarray, times: np.ndarray, title: str,
-             body_names: list[str] | None, dim_labels: list[str] | None,
-             save_path: str) -> None:
-  """Plot a (T, N_bodies, D) array: one subplot per body."""
+def _plot_3d(
+    arr: np.ndarray,
+    times: np.ndarray,
+    title: str,
+    body_names: list[str] | None,
+    dim_labels: list[str] | None,
+    save_path: str,
+) -> None:
+  """Plot a (T, N_bodies, D) array: one row per body, one column per dim."""
   n_bodies = arr.shape[1]
   n_dims = arr.shape[2]
   if dim_labels is None:
     dim_labels = [f"d{d}" for d in range(n_dims)]
-  fig, axes = plt.subplots(n_bodies, 1, figsize=(14, 2.8 * n_bodies),
-                           squeeze=False, sharex=True)
+  colors = ["tab:red", "tab:green", "tab:blue", "tab:orange", "tab:purple", "tab:cyan"]
+  fig, axes = plt.subplots(
+      n_bodies, n_dims, figsize=(6 * n_dims, 2.5 * n_bodies),
+      squeeze=False, sharex=True,
+  )
   for b in range(n_bodies):
-    ax = axes[b, 0]
     bname = body_names[b] if body_names else f"body {b}"
     for d in range(n_dims):
-      ax.plot(times, arr[:, b, d], linewidth=0.6, label=dim_labels[d])
-    ax.set_ylabel(bname, fontsize=8)
-    ax.legend(fontsize=7, ncol=n_dims, loc="upper right")
-    ax.grid(True, alpha=0.3)
-  axes[-1, 0].set_xlabel("Time (s)")
-  fig.suptitle(title, fontsize=13)
+      ax = axes[b, d]
+      ax.plot(times, arr[:, b, d], linewidth=1.5, color=colors[d % len(colors)])
+      ax.grid(True, alpha=0.3)
+      ax.tick_params(labelsize=10)
+      # Row label on leftmost column
+      if d == 0:
+        ax.set_ylabel(bname, fontsize=12)
+      # Column header on first row
+      if b == 0:
+        ax.set_title(dim_labels[d], fontsize=14, fontweight="bold")
+  for d in range(n_dims):
+    axes[-1, d].set_xlabel("Time (s)", fontsize=12)
+  fig.suptitle(title, fontsize=16)
   fig.tight_layout()
   fig.savefig(save_path, dpi=150)
   plt.close(fig)
@@ -162,38 +187,54 @@ def _plot_3d(arr: np.ndarray, times: np.ndarray, title: str,
 # Semantic grouping for qpos/qvel (30 joints).
 # Each entry: (subplot_title, column_indices, column_labels)
 _JOINT_GROUPS = [
-    ("Left Wrist", list(range(0, 6)),
-     ["X", "Y", "Z", "Roll", "Pitch", "Yaw"]),
-    ("Left Finger 0", list(range(6, 9)),
-     ["F0_L0", "F0_L1", "F0_L2"]),
-    ("Left Finger 1", list(range(9, 12)),
-     ["F1_L0", "F1_L1", "F1_L2"]),
-    ("Left Finger 2", list(range(12, 15)),
-     ["F2_L0", "F2_L1", "F2_L2"]),
-    ("Right Wrist", list(range(15, 21)),
-     ["X", "Y", "Z", "Roll", "Pitch", "Yaw"]),
-    ("Right Finger 0", list(range(21, 24)),
-     ["F0_R0", "F0_R1", "F0_R2"]),
-    ("Right Finger 1", list(range(24, 27)),
-     ["F1_R0", "F1_R1", "F1_R2"]),
-    ("Right Finger 2", list(range(27, 30)),
-     ["F2_R0", "F2_R1", "F2_R2"]),
+    ("Left Wrist", list(range(0, 6)), ["X", "Y", "Z", "Roll", "Pitch", "Yaw"]),
+    ("Left Finger 0", list(range(6, 9)), ["F0_L0", "F0_L1", "F0_L2"]),
+    ("Left Finger 1", list(range(9, 12)), ["F1_L0", "F1_L1", "F1_L2"]),
+    ("Left Finger 2", list(range(12, 15)), ["F2_L0", "F2_L1", "F2_L2"]),
+    (
+        "Right Wrist",
+        list(range(15, 21)),
+        ["X", "Y", "Z", "Roll", "Pitch", "Yaw"],
+    ),
+    ("Right Finger 0", list(range(21, 24)), ["F0_R0", "F0_R1", "F0_R2"]),
+    ("Right Finger 1", list(range(24, 27)), ["F1_R0", "F1_R1", "F1_R2"]),
+    ("Right Finger 2", list(range(27, 30)), ["F2_R0", "F2_R1", "F2_R2"]),
 ]
 
 # Body names for tracked_body_xpos (20 bodies).
 _TRACKED_BODY_NAMES = [
-    "L_WRIST", "LINK_F0_L0", "LINK_F0_L1", "LINK_F0_L2",
-    "LINK_F1_L0", "LINK_F1_L1", "LINK_F1_L2",
-    "LINK_F2_L0", "LINK_F2_L1", "LINK_F2_L2",
-    "R_WRIST", "LINK_F0_R0", "LINK_F0_R1", "LINK_F0_R2",
-    "LINK_F1_R0", "LINK_F1_R1", "LINK_F1_R2",
-    "LINK_F2_R0", "LINK_F2_R1", "LINK_F2_R2",
+    "L_WRIST",
+    "LINK_F0_L0",
+    "LINK_F0_L1",
+    "LINK_F0_L2",
+    "LINK_F1_L0",
+    "LINK_F1_L1",
+    "LINK_F1_L2",
+    "LINK_F2_L0",
+    "LINK_F2_L1",
+    "LINK_F2_L2",
+    "R_WRIST",
+    "LINK_F0_R0",
+    "LINK_F0_R1",
+    "LINK_F0_R2",
+    "LINK_F1_R0",
+    "LINK_F1_R1",
+    "LINK_F1_R2",
+    "LINK_F2_R0",
+    "LINK_F2_R1",
+    "LINK_F2_R2",
 ]
 
 # Body names for key_body_xpos (8 key bodies).
 _KEY_BODY_NAMES = [
-    "L_WRIST", "LINK_F0_L2", "LINK_F1_L2", "LINK_F2_L2",
-    "R_WRIST", "LINK_F0_R2", "LINK_F1_R2", "LINK_F2_R2",
+    "L_WRIST",
+    "LINK_F0_L2",
+    "LINK_F1_L2",
+    "LINK_F2_L2",
+    "R_WRIST",
+    "LINK_F0_R2",
+    "LINK_F1_R2",
+    "LINK_F2_R2",
 ]
 
 
@@ -207,7 +248,8 @@ def plot_all(data: dict, output_dir: Path) -> None:
 
   # 1. qpos
   _plot_2d_grouped(
-      data["qpos"], times,
+      data["qpos"],
+      times,
       title=f"Joint Positions (qpos) — {T} frames @ {freq} Hz",
       ylabel="Position (rad/m)",
       groups=_JOINT_GROUPS,
@@ -216,7 +258,8 @@ def plot_all(data: dict, output_dir: Path) -> None:
 
   # 2. qvel
   _plot_2d_grouped(
-      data["qvel"], times,
+      data["qvel"],
+      times,
       title=f"Joint Velocities (qvel) — {T} frames @ {freq} Hz",
       ylabel="Velocity (rad·s⁻¹ / m·s⁻¹)",
       groups=_JOINT_GROUPS,
@@ -226,7 +269,8 @@ def plot_all(data: dict, output_dir: Path) -> None:
   # 3. tracked_body_xpos
   if "tracked_body_xpos" in data:
     _plot_3d(
-        data["tracked_body_xpos"], times,
+        data["tracked_body_xpos"],
+        times,
         title=f"Tracked Body Positions (xpos) — {T} frames @ {freq} Hz",
         body_names=_TRACKED_BODY_NAMES,
         dim_labels=["x", "y", "z"],
@@ -236,7 +280,8 @@ def plot_all(data: dict, output_dir: Path) -> None:
   # 4. key_body_xpos
   if "key_body_xpos" in data:
     _plot_3d(
-        data["key_body_xpos"], times,
+        data["key_body_xpos"],
+        times,
         title=f"Key Body Positions (xpos) — {T} frames @ {freq} Hz",
         body_names=_KEY_BODY_NAMES,
         dim_labels=["x", "y", "z"],
@@ -246,9 +291,12 @@ def plot_all(data: dict, output_dir: Path) -> None:
   # 5. contact_force
   if "contact_force" in data:
     # Try sensor names first (new format), then body names (legacy).
-    cf_names = data.get("contact_sensor_names",
-                        data.get("contact_body_names", None))
-    n_dims = data["contact_force"].shape[2] if data["contact_force"].ndim == 3 else 0
+    cf_names = data.get(
+        "contact_sensor_names", data.get("contact_body_names", None)
+    )
+    n_dims = (
+        data["contact_force"].shape[2] if data["contact_force"].ndim == 3 else 0
+    )
     if n_dims == 3:
       dim_labels = ["fx", "fy", "fz"]
       src_label = "force sensor"
@@ -256,7 +304,8 @@ def plot_all(data: dict, output_dir: Path) -> None:
       dim_labels = ["fx", "fy", "fz", "tx", "ty", "tz"]
       src_label = "cfrc_ext"
     _plot_3d(
-        data["contact_force"], times,
+        data["contact_force"],
+        times,
         title=f"Contact Forces ({src_label}) — {T} frames @ {freq} Hz",
         body_names=cf_names,
         dim_labels=dim_labels,
@@ -266,25 +315,33 @@ def plot_all(data: dict, output_dir: Path) -> None:
 
 def main():
   data_dir = _project_root() / "data"
-  default_input = data_dir / "massage_replay_data.pkl"
+  default_input = data_dir / "massage_data.pkl"
   default_output = data_dir / "massage_traj.pkl"
   parser = argparse.ArgumentParser(
       description="Resample massage trajectory data to target frequency"
   )
   parser.add_argument(
-      "--input", type=str, default=str(default_input),
+      "--input",
+      type=str,
+      default=str(default_input),
       help="Input pkl path (default: data/massage_replay_data.pkl)",
   )
   parser.add_argument(
-      "--output", type=str, default=str(default_output),
+      "--output",
+      type=str,
+      default=str(default_output),
       help="Output pkl path (default: data/massage_traj.pkl)",
   )
   parser.add_argument(
-      "--target_freq", type=float, default=100.0,
+      "--target_freq",
+      type=float,
+      default=100.0,
       help="Target sampling frequency in Hz (default: 100.0)",
   )
   parser.add_argument(
-      "--no_plot", action="store_true", default=False,
+      "--no_plot",
+      action="store_true",
+      default=False,
       help="Skip plotting (default: False)",
   )
   args = parser.parse_args()
@@ -293,17 +350,26 @@ def main():
   with open(args.input, "rb") as f:
     data = pickle.load(f)
 
-  print(f"Loaded {args.input}: {data['qpos'].shape[0]} frames, "
-        f"{data['data_freq']} Hz, {data['duration']}s")
+  print(
+      f"Loaded {args.input}: {data['qpos'].shape[0]} frames, "
+      f"{data['data_freq']} Hz, {data['duration']}s"
+  )
 
   data = resample(data, args.target_freq)
 
   with open(output, "wb") as f:
     pickle.dump(data, f)
 
-  print(f"Saved {output}: {data['qpos'].shape[0]} frames, "
-        f"{data['data_freq']} Hz")
-  for key in ["qpos", "qvel", "tracked_body_xpos", "key_body_xpos", "contact_force"]:
+  print(
+      f"Saved {output}: {data['qpos'].shape[0]} frames, {data['data_freq']} Hz"
+  )
+  for key in [
+      "qpos",
+      "qvel",
+      "tracked_body_xpos",
+      "key_body_xpos",
+      "contact_force",
+  ]:
     if key in data:
       print(f"  {key}: {data[key].shape}")
 

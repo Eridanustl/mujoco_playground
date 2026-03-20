@@ -20,6 +20,8 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
+from mujoco_playground._src.manipulation.xleo_hand import constants as consts
+
 
 def _project_root() -> Path:
   """Walk up from this file to find the project root (directory containing .git)."""
@@ -29,102 +31,6 @@ def _project_root() -> Path:
       return p
     p = p.parent
   raise RuntimeError("Cannot find project root (no .git found)")
-
-
-# All 30 actuator names (same order as joint indices 0..29)
-ACTUATOR_NAMES = [
-    # Left wrist (6)
-    "M_LINK_HAND_BASE_L_X",
-    "M_LINK_HAND_BASE_L_Y",
-    "M_LINK_HAND_BASE_L_Z",
-    "M_LINK_HAND_BASE_L_ROLL",
-    "M_LINK_HAND_BASE_L_PITCH",
-    "M_LINK_HAND_BASE_L_YAW",
-    # Left fingers (9)
-    "M_F0_L0",
-    "M_F0_L1",
-    "M_F0_L2",
-    "M_F1_L0",
-    "M_F1_L1",
-    "M_F1_L2",
-    "M_F2_L0",
-    "M_F2_L1",
-    "M_F2_L2",
-    # Right wrist (6)
-    "M_LINK_HAND_BASE_R_X",
-    "M_LINK_HAND_BASE_R_Y",
-    "M_LINK_HAND_BASE_R_Z",
-    "M_LINK_HAND_BASE_R_ROLL",
-    "M_LINK_HAND_BASE_R_PITCH",
-    "M_LINK_HAND_BASE_R_YAW",
-    # Right fingers (9)
-    "M_F0_R0",
-    "M_F0_R1",
-    "M_F0_R2",
-    "M_F1_R0",
-    "M_F1_R1",
-    "M_F1_R2",
-    "M_F2_R0",
-    "M_F2_R1",
-    "M_F2_R2",
-]
-
-JOINT_NAMES = [
-    # Left wrist (6)
-    "J_LINK_HAND_BASE_L_X",
-    "J_LINK_HAND_BASE_L_Y",
-    "J_LINK_HAND_BASE_L_Z",
-    "J_LINK_HAND_BASE_L_ROLL",
-    "J_LINK_HAND_BASE_L_PITCH",
-    "J_LINK_HAND_BASE_L_YAW",
-    # Left fingers (9)
-    "J_F0_L0",
-    "J_F0_L1",
-    "J_F0_L2",
-    "J_F1_L0",
-    "J_F1_L1",
-    "J_F1_L2",
-    "J_F2_L0",
-    "J_F2_L1",
-    "J_F2_L2",
-    # Right wrist (6)
-    "J_LINK_HAND_BASE_R_X",
-    "J_LINK_HAND_BASE_R_Y",
-    "J_LINK_HAND_BASE_R_Z",
-    "J_LINK_HAND_BASE_R_ROLL",
-    "J_LINK_HAND_BASE_R_PITCH",
-    "J_LINK_HAND_BASE_R_YAW",
-    # Right fingers (9)
-    "J_F0_R0",
-    "J_F0_R1",
-    "J_F0_R2",
-    "J_F1_R0",
-    "J_F1_R1",
-    "J_F1_R2",
-    "J_F2_R0",
-    "J_F2_R1",
-    "J_F2_R2",
-]
-
-# 6 bodies for contact force recording.
-CONTACT_BODY_NAMES = [
-    "L_WRIST",
-    "LINK_F1_L0",
-    "LINK_F2_L0",
-    "R_WRIST",
-    "LINK_F1_R0",
-    "LINK_F2_R0",
-]
-
-# 6 force sensors for contact force recording.
-CONTACT_FORCE_SENSOR_NAMES = [
-    "S_FORCE_L_WRIST",
-    "S_FORCE_F1_L0",
-    "S_FORCE_F2_L0",
-    "S_FORCE_R_WRIST",
-    "S_FORCE_F1_R0",
-    "S_FORCE_F2_R0",
-]
 
 
 def _interpolate(data: np.ndarray, t: float, data_freq: float) -> np.ndarray:
@@ -170,21 +76,21 @@ def run(
   data = mujoco.MjData(model)
 
   # Resolve actuator ctrl indices and joint qpos/qvel addresses.
-  act_ids = [model.actuator(n).id for n in ACTUATOR_NAMES]
+  act_ids = [model.actuator(n).id for n in consts.ACTUATOR_NAMES]
   qpos_adrs = []
   qvel_adrs = []
-  for jname in JOINT_NAMES:
+  for jname in consts.JOINT_NAMES:
     jid = model.joint(jname).id
     qpos_adrs.append(model.jnt_qposadr[jid])
     qvel_adrs.append(model.jnt_dofadr[jid])
 
   # Resolve contact force sensor addresses in sensordata.
   sensor_adrs = [
-      model.sensor_adr[model.sensor(n).id] for n in CONTACT_FORCE_SENSOR_NAMES
+      model.sensor_adr[model.sensor(n).id]
+      for n in consts.CONTACT_FORCE_SENSOR_NAMES
   ]
 
   # Resolve body ids for tracked body xpos and key body xpos.
-  from mujoco_playground._src.manipulation.xleo_hand import constants as consts
   tracked_body_ids = [model.body(n).id for n in consts.TRACKED_BODY_NAMES]
   key_body_ids = [model.body(n).id for n in consts.KEY_BODY_NAMES]
 
@@ -235,7 +141,9 @@ def run(
       rec_qpos.append(np.array([data.qpos[a] for a in qpos_adrs]))
       rec_qvel.append(np.array([data.qvel[a] for a in qvel_adrs]))
       rec_contact_force.append(
-          np.array([data.sensordata[adr:adr+3].copy() for adr in sensor_adrs])
+          np.array(
+              [data.sensordata[adr : adr + 3].copy() for adr in sensor_adrs]
+          )
       )
       rec_tracked_body_xpos.append(
           np.array([data.xpos[b].copy() for b in tracked_body_ids])
@@ -254,6 +162,7 @@ def run(
   rec_contact_force = np.array(rec_contact_force)  # (T, 6, 3)
   rec_tracked_body_xpos = np.array(rec_tracked_body_xpos)  # (T, 20, 3)
   rec_key_body_xpos = np.array(rec_key_body_xpos)  # (T, 8, 3)
+  print(f"rec_tracked_body_xpos.shape: {rec_tracked_body_xpos.shape}")
 
   # Zero out wrist Z joints (indices 2, 17) for cyclic trajectory.
   wrist_z_indices = [2, 17]
@@ -263,7 +172,7 @@ def run(
   # Check cyclic trajectory condition: first frame vs last frame.
   print("\n--- Cyclic trajectory check (|first - last| per joint) ---")
   diff = np.abs(rec_qpos[0] - rec_qpos[-1])
-  for i, jname in enumerate(JOINT_NAMES):
+  for i, jname in enumerate(consts.JOINT_NAMES):
     status = "OK" if diff[i] < 0.01 else "WARN"
     print(f"  [{status}] {jname}: diff={diff[i]:.6f}")
 
@@ -279,7 +188,7 @@ def run(
       "qpos": rec_qpos,
       "qvel": rec_qvel,
       "contact_force": rec_contact_force,
-      "contact_sensor_names": CONTACT_FORCE_SENSOR_NAMES,
+      "contact_sensor_names": consts.CONTACT_FORCE_SENSOR_NAMES,
       "tracked_body_xpos": rec_tracked_body_xpos,
       "key_body_xpos": rec_key_body_xpos,
       "data_freq": data_freq,
