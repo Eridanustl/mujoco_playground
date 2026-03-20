@@ -68,7 +68,7 @@ _randomizer = {
     "LeapCubeReorient": leap_cube_reorient.domain_randomize,
     "LeapCubeReorientStudy": leap_cube_reorient_study.domain_randomize,
     "AeroCubeRotateZAxis": aero_hand_rotate_z.domain_randomize,
-    "XleoMassage": xleo_massage.domain_randomize,
+    # "XleoMassage": xleo_massage.domain_randomize,
 }
 
 

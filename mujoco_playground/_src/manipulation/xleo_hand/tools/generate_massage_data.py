@@ -1,6 +1,6 @@
 """Generate expert trajectory data for dual hand massage motion.
 
-Produces (1-cos)/2 driven qpos/qvel for all 30 joints at a configurable
+Produces (1-cos)/2 driven qpos/qvel for all joints at a configurable
 sampling frequency and saves to a pickle file.
 
 Usage:
@@ -21,83 +21,35 @@ from etils import epath
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.manipulation.xleo_hand import constants as consts
 
-NUM_JOINTS = 30
-
 # ---------------------------------------------------------------------------
-# Joint trajectory configs: (joint_index, amplitude, sign)
+# Joint trajectory configs: (joint_name, amplitude, sign)
 #   All use (1-cos)/2 waveform: 0 -> amplitude -> 0
 #   sign: +1 or -1 controls the direction
 # ---------------------------------------------------------------------------
 
 # Wrist Y-axis (use wrist omega/phase, amplitude from config)
-#   idx  1: J_LINK_HAND_BASE_L_Y  -> -Y is inward squeeze
-#   idx 16: J_LINK_HAND_BASE_R_Y  -> +Y is inward squeeze
+#   J_LINK_HAND_BASE_L_Y  -> -Y is inward squeeze
+#   J_LINK_HAND_BASE_R_Y  -> +Y is inward squeeze
 WRIST_JOINTS = [
-    # (joint_idx, sign)
-    (1, -1),  # left wrist Y: negative = inward
-    (16, +1),  # right wrist Y: positive = inward
+    # (joint_name, sign)
+    ("J_LINK_HAND_BASE_L_Y", -1),  # left wrist Y: negative = inward
+    ("J_LINK_HAND_BASE_R_Y", +1),  # right wrist Y: positive = inward
 ]
 
 # Finger joints (use finger omega/phase)
-#   Each entry: (joint_idx, amplitude)
+#   Each entry: (joint_name, amplitude)
 FINGER_JOINTS = [
     # F0 (thumb) - separate amplitudes
-    (6, 0.3),  # J_F0_L0
-    (7, 0.4),  # J_F0_L1
-    (21, 0.3),  # J_F0_R0
-    (22, 0.4),  # J_F0_R1
+    ("J_F0_L0", 0.3),
+    ("J_F0_L1", 0.4),
+    ("J_F0_R0", 0.3),
+    ("J_F0_R1", 0.4),
     # F1
-    (9, 0.7),  # J_F1_L0
-    (24, 0.7),  # J_F1_R0
+    ("J_F1_L0", 0.7),
+    ("J_F1_R0", 0.7),
     # F2
-    (12, 0.7),  # J_F2_L0
-    (27, 0.7),  # J_F2_R0
-]
-
-# Joint name mapping for plotting
-JOINT_NAMES = {
-    1: "wrist_L_Y",
-    16: "wrist_R_Y",
-    6: "J_F0_L0",
-    7: "J_F0_L1",
-    9: "J_F1_L0",
-    12: "J_F2_L0",
-    21: "J_F0_R0",
-    22: "J_F0_R1",
-    24: "J_F1_R0",
-    27: "J_F2_R0",
-}
-
-# Joint groups for grouped subplot layout (matching qpos.png reference style)
-JOINT_GROUPS = [
-    (
-        "Left Wrist",
-        [
-            (0, "X"),
-            (1, "Y"),
-            (2, "Z"),
-            (3, "Roll"),
-            (4, "Pitch"),
-            (5, "Yaw"),
-        ],
-    ),
-    ("Left Finger 0", [(6, "F0_L0"), (7, "F0_L1"), (8, "F0_L2")]),
-    ("Left Finger 1", [(9, "F1_L0"), (10, "F1_L1"), (11, "F1_L2")]),
-    ("Left Finger 2", [(12, "F2_L0"), (13, "F2_L1"), (14, "F2_L2")]),
-    (
-        "Right Wrist",
-        [
-            (15, "X"),
-            (16, "Y"),
-            (17, "Z"),
-            (18, "Roll"),
-            (19, "Pitch"),
-            (20, "Yaw"),
-        ],
-    ),
-    ("Right Finger 0", [(21, "F0_R0"), (22, "F0_R1"), (23, "F0_R2")]),
-    ("Right Finger 1", [(24, "F1_R0"), (25, "F1_R1"), (26, "F1_R2")]),
-    ("Right Finger 2", [(27, "F2_R0"), (28, "F2_R1"), (29, "F2_R2")]),
+    ("J_F2_L0", 0.7),
+    ("J_F2_R0", 0.7),
 ]
 
 
@@ -163,14 +115,15 @@ def _halfcos_vel(
 def generate(cfg: MassageConfig) -> dict:
   t = np.arange(0, cfg.duration, 1.0 / cfg.data_freq)
   T = len(t)
-  qpos = np.zeros((T, NUM_JOINTS), dtype=np.float64)
-  qvel = np.zeros((T, NUM_JOINTS), dtype=np.float64)
+  qpos = np.zeros((T, consts.NQ), dtype=np.float64)
+  qvel = np.zeros((T, consts.NQ), dtype=np.float64)
 
   omega_w = 2.0 * np.pi / cfg.wrist_period
   omega_f = 2.0 * np.pi / cfg.finger_period
 
   # Wrist joints
-  for idx, sign in WRIST_JOINTS:
+  for name, sign in WRIST_JOINTS:
+    idx = consts.joint_index(name)
     qpos[:, idx] = sign * _halfcos_pos(
         cfg.wrist_amplitude, omega_w, t, cfg.wrist_phase
     )
@@ -179,7 +132,8 @@ def generate(cfg: MassageConfig) -> dict:
     )
 
   # Finger joints
-  for idx, amp in FINGER_JOINTS:
+  for name, amp in FINGER_JOINTS:
+    idx = consts.joint_index(name)
     qpos[:, idx] = _halfcos_pos(amp, omega_f, t, cfg.finger_phase)
     qvel[:, idx] = _halfcos_vel(amp, omega_f, t, cfg.finger_phase)
 
@@ -218,10 +172,14 @@ def _get_assets():
 def precompute_body_xpos(data: dict) -> dict:
   """Run MuJoCo CPU FK on each trajectory frame to get body xpos.
 
+  Wrist positions (L_WRIST, R_WRIST) are stored in the world frame.
+  Finger body positions are stored relative to their respective wrist's
+  local coordinate frame:  p_local = R_wrist^T @ (p_world - p_wrist).
+
   Adds tracked_body_xpos, key_body_xpos, and body name lists to the data dict.
 
   Args:
-    data: dict with "qpos" (T, 30), "data_freq", etc.
+    data: dict with "qpos" (T, 28), "data_freq", etc.
 
   Returns:
     The same dict with new keys added.
@@ -238,6 +196,22 @@ def precompute_body_xpos(data: dict) -> dict:
   )
   key_body_ids = np.array([mj_model.body(n).id for n in consts.KEY_BODY_NAMES])
 
+  # Wrist body IDs for coordinate transformation
+  l_wrist_body_id = mj_model.body("L_WRIST").id
+  r_wrist_body_id = mj_model.body("R_WRIST").id
+
+  # Index mapping within TRACKED_BODY_NAMES:
+  #   LEFT_BODY_NAMES:  [0]=L_WRIST, [1..9]=left finger bodies
+  #   RIGHT_BODY_NAMES: [10]=R_WRIST, [11..19]=right finger bodies
+  n_left = len(consts.LEFT_BODY_NAMES)  # 10
+  left_wrist_idx = 0
+  right_wrist_idx = n_left  # 10
+  left_finger_slice = slice(1, n_left)  # 1..9
+  right_finger_slice = slice(n_left + 1, len(consts.TRACKED_BODY_NAMES))  # 11..19
+
+  # KEY_BODY_NAMES: first 3 are left fingertips, last 3 are right fingertips
+  n_left_key = len([n for n in consts.KEY_BODY_NAMES if "_L" in n])
+
   qpos_data = data["qpos"]
   T = qpos_data.shape[0]
   tracked_xpos = np.zeros((T, len(tracked_body_ids), 3))
@@ -248,8 +222,40 @@ def precompute_body_xpos(data: dict) -> dict:
     mj_data.qpos[joint_qids] = qpos_data[t]
     mj_data.qvel[:] = 0
     mujoco.mj_forward(mj_model, mj_data)
-    tracked_xpos[t] = mj_data.xpos[tracked_body_ids]
-    key_xpos[t] = mj_data.xpos[key_body_ids]
+
+    # World-frame positions for all tracked bodies
+    all_xpos = mj_data.xpos[tracked_body_ids].copy()
+
+    # Wrist positions (world frame) and rotation matrices (3x3)
+    l_wrist_pos = mj_data.xpos[l_wrist_body_id].copy()
+    r_wrist_pos = mj_data.xpos[r_wrist_body_id].copy()
+    l_wrist_rot = mj_data.xmat[l_wrist_body_id].reshape(3, 3)
+    r_wrist_rot = mj_data.xmat[r_wrist_body_id].reshape(3, 3)
+
+    # Keep wrist positions in world frame
+    tracked_xpos[t, left_wrist_idx] = l_wrist_pos
+    tracked_xpos[t, right_wrist_idx] = r_wrist_pos
+
+    # Left finger bodies: transform to left wrist local frame
+    left_world = all_xpos[left_finger_slice]  # (9, 3)
+    tracked_xpos[t, left_finger_slice] = (
+        (left_world - l_wrist_pos) @ l_wrist_rot  # R^T @ delta = delta @ R
+    )
+
+    # Right finger bodies: transform to right wrist local frame
+    right_world = all_xpos[right_finger_slice]  # (9, 3)
+    tracked_xpos[t, right_finger_slice] = (
+        (right_world - r_wrist_pos) @ r_wrist_rot
+    )
+
+    # Key body xpos (fingertips): also in wrist-local frame
+    all_key_xpos = mj_data.xpos[key_body_ids].copy()
+    key_xpos[t, :n_left_key] = (
+        (all_key_xpos[:n_left_key] - l_wrist_pos) @ l_wrist_rot
+    )
+    key_xpos[t, n_left_key:] = (
+        (all_key_xpos[n_left_key:] - r_wrist_pos) @ r_wrist_rot
+    )
 
   data["tracked_body_xpos"] = tracked_xpos
   data["key_body_xpos"] = key_xpos
@@ -282,7 +288,7 @@ def _plot_grouped(
     ylabel: Y-axis label for every subplot.
     output_path: Where to save the figure.
   """
-  n_groups = len(JOINT_GROUPS)
+  n_groups = len(consts.JOINT_GROUPS)
   T = data_array.shape[0]
   t = np.arange(T) / freq
 
@@ -292,7 +298,7 @@ def _plot_grouped(
   if n_groups == 1:
     axes = [axes]
 
-  for ax, (group_name, joints) in zip(axes, JOINT_GROUPS):
+  for ax, (group_name, joints) in zip(axes, consts.JOINT_GROUPS):
     for idx, label in joints:
       ax.plot(t, data_array[:, idx], linewidth=1.5, label=label)
     ax.set_ylabel(ylabel, fontsize=10)

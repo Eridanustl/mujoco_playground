@@ -58,7 +58,7 @@ def run(
   with open(pkl_path, "rb") as f:
     traj = pickle.load(f)
 
-  qpos_data = traj["qpos"]  # (T, 30)
+  qpos_data = traj["qpos"]  # (T, NQ)
   src_data_freq = traj["data_freq"]
   duration = traj["duration"]
 
@@ -94,15 +94,13 @@ def run(
   tracked_body_ids = [model.body(n).id for n in consts.TRACKED_BODY_NAMES]
   key_body_ids = [model.body(n).id for n in consts.KEY_BODY_NAMES]
 
-  # Per-joint kp/kd: wrist (0..5, 15..20), fingers (6..14, 21..29).
-  kp = np.zeros(30)
-  kd = np.zeros(30)
-  wrist_indices = list(range(0, 6)) + list(range(15, 21))
-  finger_indices = list(range(6, 15)) + list(range(21, 30))
-  kp[wrist_indices] = wrist_kp
-  kd[wrist_indices] = wrist_kd
-  kp[finger_indices] = finger_kp
-  kd[finger_indices] = finger_kd
+  # Per-joint kp/kd: wrist vs finger gains.
+  kp = np.zeros(consts.NQ)
+  kd = np.zeros(consts.NQ)
+  kp[consts.WRIST_INDICES] = wrist_kp
+  kd[consts.WRIST_INDICES] = wrist_kd
+  kp[consts.FINGER_INDICES] = finger_kp
+  kd[consts.FINGER_INDICES] = finger_kd
 
   # Simulation loop parameters.
   timestep = model.opt.timestep
@@ -127,7 +125,7 @@ def run(
 
     # PD torque control.
     qpos_target = _interpolate(qpos_data, t % duration, src_data_freq)
-    for i in range(30):
+    for i in range(consts.NQ):
       q_err = qpos_target[i] - data.qpos[qpos_adrs[i]]
       qvel_actual = data.qvel[qvel_adrs[i]]
       torque = kp[i] * q_err - kd[i] * qvel_actual
@@ -157,17 +155,12 @@ def run(
       pct = step_i / total_steps * 100
       print(f"  {pct:.0f}% ({step_i}/{total_steps})")
 
-  rec_qpos = np.array(rec_qpos)  # (T, 30)
-  rec_qvel = np.array(rec_qvel)  # (T, 30)
+  rec_qpos = np.array(rec_qpos)  # (T, NQ)
+  rec_qvel = np.array(rec_qvel)  # (T, NQ)
   rec_contact_force = np.array(rec_contact_force)  # (T, 6, 3)
   rec_tracked_body_xpos = np.array(rec_tracked_body_xpos)  # (T, 20, 3)
-  rec_key_body_xpos = np.array(rec_key_body_xpos)  # (T, 8, 3)
+  rec_key_body_xpos = np.array(rec_key_body_xpos)  # (T, 6, 3)
   print(f"rec_tracked_body_xpos.shape: {rec_tracked_body_xpos.shape}")
-
-  # Zero out wrist Z joints (indices 2, 17) for cyclic trajectory.
-  wrist_z_indices = [2, 17]
-  rec_qpos[:, wrist_z_indices] = 0.0
-  rec_qvel[:, wrist_z_indices] = 0.0
 
   # Check cyclic trajectory condition: first frame vs last frame.
   print("\n--- Cyclic trajectory check (|first - last| per joint) ---")
@@ -207,7 +200,7 @@ def run(
     def controller(m, d):
       t = d.time % duration
       qpos_target = _interpolate(qpos_data, t, src_data_freq)
-      for i in range(30):
+      for i in range(consts.NQ):
         q_err = qpos_target[i] - d.qpos[qpos_adrs[i]]
         qvel_actual = d.qvel[qvel_adrs[i]]
         torque = kp[i] * q_err - kd[i] * qvel_actual

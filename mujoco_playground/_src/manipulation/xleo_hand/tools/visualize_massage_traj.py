@@ -19,6 +19,8 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
+from mujoco_playground._src.manipulation.xleo_hand import constants as consts
+
 
 def _project_root() -> Path:
   """Walk up from this file to find the project root (directory containing .git)."""
@@ -28,45 +30,6 @@ def _project_root() -> Path:
       return p
     p = p.parent
   raise RuntimeError("Cannot find project root (no .git found)")
-
-
-# All 30 joint names (same order as joint indices 0..29).
-JOINT_NAMES = [
-    # Left wrist (6)
-    "J_LINK_HAND_BASE_L_X",
-    "J_LINK_HAND_BASE_L_Y",
-    "J_LINK_HAND_BASE_L_Z",
-    "J_LINK_HAND_BASE_L_ROLL",
-    "J_LINK_HAND_BASE_L_PITCH",
-    "J_LINK_HAND_BASE_L_YAW",
-    # Left fingers (9)
-    "J_F0_L0",
-    "J_F0_L1",
-    "J_F0_L2",
-    "J_F1_L0",
-    "J_F1_L1",
-    "J_F1_L2",
-    "J_F2_L0",
-    "J_F2_L1",
-    "J_F2_L2",
-    # Right wrist (6)
-    "J_LINK_HAND_BASE_R_X",
-    "J_LINK_HAND_BASE_R_Y",
-    "J_LINK_HAND_BASE_R_Z",
-    "J_LINK_HAND_BASE_R_ROLL",
-    "J_LINK_HAND_BASE_R_PITCH",
-    "J_LINK_HAND_BASE_R_YAW",
-    # Right fingers (9)
-    "J_F0_R0",
-    "J_F0_R1",
-    "J_F0_R2",
-    "J_F1_R0",
-    "J_F1_R1",
-    "J_F1_R2",
-    "J_F2_R0",
-    "J_F2_R1",
-    "J_F2_R2",
-]
 
 
 def _interpolate(data: np.ndarray, t: float, data_freq: float) -> np.ndarray:
@@ -86,7 +49,7 @@ def run(pkl_path: str, speed: float):
   with open(pkl_path, "rb") as f:
     traj = pickle.load(f)
 
-  qpos_data = traj["qpos"]  # (T, 30)
+  qpos_data = traj["qpos"]  # (T, NQ)
   data_freq = traj["data_freq"]
   duration = traj["duration"]
 
@@ -111,7 +74,7 @@ def run(pkl_path: str, speed: float):
   # Resolve joint qpos/qvel addresses.
   qpos_adrs = []
   qvel_adrs = []
-  for jname in JOINT_NAMES:
+  for jname in consts.JOINT_NAMES:
     jid = model.joint(jname).id
     qpos_adrs.append(model.jnt_qposadr[jid])
     qvel_adrs.append(model.jnt_dofadr[jid])
@@ -127,7 +90,7 @@ def run(pkl_path: str, speed: float):
       qpos_target = _interpolate(qpos_data, t, data_freq)
 
       # Write joint positions directly into qpos.
-      for i in range(30):
+      for i in range(consts.NQ):
         data.qpos[qpos_adrs[i]] = qpos_target[i]
         # Zero out velocities to prevent physics integration drift.
         data.qvel[qvel_adrs[i]] = 0.0

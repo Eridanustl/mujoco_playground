@@ -9,7 +9,6 @@ from ml_collections import config_dict
 import mujoco
 from mujoco import mjx
 from etils import epath
-import math
 
 from mujoco_playground._src import mjx_env
 from mujoco_playground._src.manipulation.xleo_hand import constants as consts
@@ -17,42 +16,51 @@ from mujoco_playground._src.manipulation.xleo_hand import constants as consts
 
 def default_config() -> config_dict.ConfigDict:
   return config_dict.create(
-      ctrl_dt=0.01,
-      sim_dt=0.002,
+      ctrl_dt=0.02,
+      sim_dt=0.005,
       finger_action_scale=0.5,
       wrist_action_scale=0.05,
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
-      wrist_kp=100.0,
-      wrist_kd=5.0,
+      wrist_kp=10.0,
+      wrist_kd=0.5,
       finger_kp=5.0,
       finger_kd=0.1,
       # Future target observation steps (in env steps).
       target_obs_steps=[1, 2, 3],
       obs_noise=config_dict.create(
-          level=1.0,
+          level=0,
           scales=config_dict.create(
               joint_pos=0.05,
           ),
       ),
       reward_config=config_dict.create(
+          # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=1,
+              pose=0.5,
               vel=0.1,
-              key_pos=0,
-              action_rate=-0.001,
-              action_smooth=-1e-4,
-              energy=-1e-6,
-              contact_force=0,
+              root_pose=0.15,
+              root_vel=0.1,
+              key_pos=0.15,
+              # Regularization penalties (unchanged).
+              action_rate=-10,
+              # action_smooth=-1e-4,
+              # energy=-1e-6
           ),
-          # Gaussian kernel sigma: r = exp(-err / (2 * sigma²)).
-          pose_sigma=math.sqrt(0.25),
-          vel_sigma=math.sqrt(0.25),
-          key_pos_sigma=math.sqrt(0.25),
+          # DeepMimic exponential reward scales: r = exp(-scale * err).
+          pose_scale=0.25,
+          vel_scale=0.01,
+          root_pose_scale=5.0,
+          root_vel_scale=1.0,
+          key_pos_scale=10.0,
+          # Coefficient for rotation error within root_pose / root_vel.
+          root_rot_err_coeff=0.1,
+          # Per-finger-joint error weights (18 = 9 left + 9 right).
+          finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.05,
+      pose_termination_dist=1,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
@@ -166,6 +174,24 @@ class Massage(mjx_env.MjxEnv):
     self._traj_xpos = jp.array(traj["tracked_body_xpos"])  # (T, 20, 3)
     self._traj_key_xpos = jp.array(traj["key_body_xpos"])  # (T, 8, 3)
 
+    # Wrist body IDs for world-to-local coordinate transformation.
+    self._l_wrist_body_id = self._mj_model.body("L_WRIST").id
+    self._r_wrist_body_id = self._mj_model.body("R_WRIST").id
+
+    # Index mapping within TRACKED_BODY_NAMES (20 bodies):
+    #   LEFT_BODY_NAMES:  [0]=L_WRIST, [1..9]=left finger bodies
+    #   RIGHT_BODY_NAMES: [10]=R_WRIST, [11..19]=right finger bodies
+    n_left = len(consts.LEFT_BODY_NAMES)  # 10
+    self._left_wrist_idx = 0
+    self._right_wrist_idx = n_left  # 10
+    self._left_finger_slice = slice(1, n_left)  # 1..9
+    self._right_finger_slice = slice(
+        n_left + 1, len(consts.TRACKED_BODY_NAMES)
+    )  # 11..19
+
+    # KEY_BODY_NAMES: first N are left fingertips, rest are right fingertips.
+    self._n_left_key = len([n for n in consts.KEY_BODY_NAMES if "_L" in n])
+
     # Contact force reference trajectory (optional).
     if "contact_force" in traj:
       self._traj_contact_force = jp.array(traj["contact_force"])  # (T, 6, 3)
@@ -194,6 +220,11 @@ class Massage(mjx_env.MjxEnv):
         dtype=jp.int32,
     )
     self._n_fingertips = len(consts.FINGERTIP_BODY_NAMES)
+
+    # Per-finger-joint error weights for DeepMimic pose reward.
+    self._finger_err_w = jp.array(
+        self._config.reward_config.finger_err_w, dtype=jp.float32
+    )
 
   def reset(self, rng: jax.Array) -> mjx_env.State:
     # Random step offset: start from a random point in the trajectory cycle.
@@ -369,8 +400,8 @@ class Massage(mjx_env.MjxEnv):
     state.metrics["tracking_vel_error"] += jp.mean(
         jp.square(joint_vel - target_qvel)
     )
-    # Body cartesian position error for monitoring.
-    cur_body_pos = data.xpos[self._tracked_body_ids]
+    # Body cartesian position error for monitoring (wrist-local frame for fingers).
+    cur_body_pos = self._get_tracked_body_pos(data)
     body_dist_sq = jp.sum(jp.square(cur_body_pos - ref_body_pos), axis=-1)
     state.metrics["max_body_pos_error"] += jp.sqrt(jp.max(body_dist_sq))
 
@@ -516,6 +547,50 @@ class Massage(mjx_env.MjxEnv):
         "privileged_state": privileged_state,
     }
 
+  def _get_tracked_body_pos(self, data: mjx.Data) -> jax.Array:
+    """Get tracked body positions with finger bodies in wrist-local frame.
+
+    Wrist positions are in world frame. Finger body positions are relative
+    to their respective wrist's local coordinate frame:
+      p_local = R_wrist^T @ (p_world - p_wrist)
+
+    This matches the coordinate convention used in the expert trajectory data.
+    """
+    all_xpos = data.xpos[self._tracked_body_ids]  # (20, 3)
+
+    # Wrist positions (world frame) and rotation matrices (3x3)
+    l_wrist_pos = data.xpos[self._l_wrist_body_id]  # (3,)
+    r_wrist_pos = data.xpos[self._r_wrist_body_id]  # (3,)
+    l_wrist_rot = data.xmat[self._l_wrist_body_id].reshape(3, 3)  # (3, 3)
+    r_wrist_rot = data.xmat[self._r_wrist_body_id].reshape(3, 3)  # (3, 3)
+
+    # Left finger bodies: world -> left wrist local frame
+    left_local = (all_xpos[self._left_finger_slice] - l_wrist_pos) @ l_wrist_rot
+    # Right finger bodies: world -> right wrist local frame
+    right_local = (
+        all_xpos[self._right_finger_slice] - r_wrist_pos
+    ) @ r_wrist_rot
+
+    # Assemble: wrists in world frame, fingers in wrist-local frame
+    result = all_xpos  # (20, 3)
+    result = result.at[self._left_finger_slice].set(left_local)
+    result = result.at[self._right_finger_slice].set(right_local)
+    return result
+
+  def _get_key_body_pos(self, data: mjx.Data) -> jax.Array:
+    """Get key body positions (fingertips) in wrist-local frame."""
+    all_key_xpos = data.xpos[self._key_body_ids]  # (N_key, 3)
+
+    l_wrist_pos = data.xpos[self._l_wrist_body_id]
+    r_wrist_pos = data.xpos[self._r_wrist_body_id]
+    l_wrist_rot = data.xmat[self._l_wrist_body_id].reshape(3, 3)
+    r_wrist_rot = data.xmat[self._r_wrist_body_id].reshape(3, 3)
+
+    n = self._n_left_key
+    left_local = (all_key_xpos[:n] - l_wrist_pos) @ l_wrist_rot
+    right_local = (all_key_xpos[n:] - r_wrist_pos) @ r_wrist_rot
+    return jp.concatenate([left_local, right_local], axis=0)
+
   def _get_termination(
       self,
       data: mjx.Data,
@@ -526,7 +601,8 @@ class Massage(mjx_env.MjxEnv):
     nan_fail = jp.any(jp.isnan(data.qpos)) | jp.any(jp.isnan(data.qvel))
 
     # 2. Pose termination: max tracked-body cartesian position error.
-    cur_body_pos = data.xpos[self._tracked_body_ids]
+    #    Finger bodies are compared in wrist-local frame (matching expert data).
+    cur_body_pos = self._get_tracked_body_pos(data)
     body_pos_diff = cur_body_pos - ref_body_pos
     body_pos_dist_sq = jp.sum(body_pos_diff * body_pos_diff, axis=-1)
     max_body_dist_sq = jp.max(body_pos_dist_sq)
@@ -596,42 +672,123 @@ class Massage(mjx_env.MjxEnv):
     return {
         "pose": self._reward_pose(data, target_qpos),
         "vel": self._reward_vel(data, target_qvel),
+        "root_pose": self._reward_root_pose(data, target_qpos),
+        "root_vel": self._reward_root_vel(data, target_qvel),
+        "key_pos": self._reward_key_pos(data, info),
         "action_rate": self._reward_action_rate(action, info["last_act"]),
-        "action_smooth": self._reward_action_smooth(
-            action, info["last_act"], info["last_last_act"]
-        ),
-        "energy": self._reward_energy(data),
+        # "action_smooth": self._reward_action_smooth(
+        #     action, info["last_act"], info["last_last_act"]
+        # ),
+        # "energy": self._reward_energy(data),
     }
 
-  # Reward functions. --------------------------------------------------------
+  # Reward functions (DeepMimic style). ----------------------------------------
+  #
+  # The massage task maps onto DeepMimic as follows:
+  #   DeepMimic root  -> wrist (6 DOF per hand: 3 slide + 3 hinge)
+  #   DeepMimic joints -> finger joints (9 per hand)
+  #   DeepMimic key_pos -> fingertip cartesian positions (wrist-local frame)
+  #
+  # Each sub-reward has the form: r = exp(-scale * err)
 
   def _reward_pose(self, data: mjx.Data, target_qpos: jax.Array) -> jax.Array:
-    """Joint pose tracking in joint position space: exp(-err / (2 * sigma²)).
+    """Finger joint pose tracking (DeepMimic pose_r).
 
-    Computes squared difference directly on joint positions (radians for
-    hinge joints, meters for slide joints), following the DeepMimic reward
-    formulation instead of the 6D rotation encoding.
+    err = sum(w_j * (q_j - q_j^*)²)  over all finger joints.
+    r = exp(-pose_scale * err)
     """
+    # Finger joints: indices 6..14 (left) and 21..29 (right).
+    finger_ids = jp.array(list(range(6, 15)) + list(range(21, 30)))
     joint_pos = data.qpos[self._joint_qids]
-    pose_err = jp.mean(jp.square(joint_pos - target_qpos))
-    sigma = self._config.reward_config.pose_sigma
-    return jp.exp(-pose_err / (2.0 * sigma**2))
+    finger_pos = joint_pos[finger_ids]
+    finger_tar = target_qpos[finger_ids]
+
+    diff = finger_pos - finger_tar
+    pose_err = jp.sum(self._finger_err_w * diff * diff)
+    return jp.exp(-self._config.reward_config.pose_scale * pose_err)
 
   def _reward_vel(self, data: mjx.Data, target_qvel: jax.Array) -> jax.Array:
-    """Joint velocity tracking: exp(-err / (2 * sigma²))."""
-    joint_vel = data.qvel[self._joint_dqids]
-    vel_err = jp.mean(jp.square(joint_vel - target_qvel))
-    sigma = self._config.reward_config.vel_sigma
-    return jp.exp(-vel_err / (2.0 * sigma**2))
+    """Finger joint velocity tracking (DeepMimic vel_r).
 
-  def _reward_key_pos(
-      self, data: mjx.Data, ref_key_pos: jax.Array
+    err = sum(w_j * (dq_j - dq_j^*)²)  over all finger joints.
+    r = exp(-vel_scale * err)
+    """
+    finger_ids = jp.array(list(range(6, 15)) + list(range(21, 30)))
+    joint_vel = data.qvel[self._joint_dqids]
+    finger_vel = joint_vel[finger_ids]
+    finger_tar_vel = target_qvel[finger_ids]
+
+    diff = finger_vel - finger_tar_vel
+    vel_err = jp.sum(self._finger_err_w * diff * diff)
+    return jp.exp(-self._config.reward_config.vel_scale * vel_err)
+
+  def _reward_root_pose(
+      self, data: mjx.Data, target_qpos: jax.Array
   ) -> jax.Array:
-    """Key body cartesian position tracking: exp(-err / (2 * sigma²))."""
-    cur_key_pos = data.xpos[self._key_body_ids]  # (N_key, 3)
-    key_pos_err = jp.mean(jp.sum(jp.square(cur_key_pos - ref_key_pos), axis=-1))
-    sigma = self._config.reward_config.key_pos_sigma
-    return jp.exp(-key_pos_err / (2.0 * sigma**2))
+    """Wrist (root) pose tracking (DeepMimic root_pose_r).
+
+    For each hand:
+      pos_err = ||p - p*||²   (3D wrist slide joints)
+      rot_err = ||θ - θ*||²   (3D wrist hinge joints, radian diff)
+    r = exp(-root_pose_scale * (pos_err + rot_coeff * rot_err))
+    """
+    joint_pos = data.qpos[self._joint_qids]
+
+    # Left wrist: slide [0:3], hinge [3:6]
+    l_pos_err = jp.sum(jp.square(joint_pos[0:3] - target_qpos[0:3]))
+    l_rot_err = jp.sum(jp.square(joint_pos[3:6] - target_qpos[3:6]))
+    # Right wrist: slide [15:18], hinge [18:21]
+    r_pos_err = jp.sum(jp.square(joint_pos[15:18] - target_qpos[15:18]))
+    r_rot_err = jp.sum(jp.square(joint_pos[18:21] - target_qpos[18:21]))
+
+    pos_err = l_pos_err + r_pos_err
+    rot_err = l_rot_err + r_rot_err
+    rot_coeff = self._config.reward_config.root_rot_err_coeff
+    scale = self._config.reward_config.root_pose_scale
+    return jp.exp(-scale * (pos_err + rot_coeff * rot_err))
+
+  def _reward_root_vel(
+      self, data: mjx.Data, target_qvel: jax.Array
+  ) -> jax.Array:
+    """Wrist (root) velocity tracking (DeepMimic root_vel_r).
+
+    For each hand:
+      lin_vel_err = ||v - v*||²   (wrist slide velocities)
+      ang_vel_err = ||ω - ω*||²   (wrist hinge velocities)
+    r = exp(-root_vel_scale * (lin_vel_err + rot_coeff * ang_vel_err))
+    """
+    joint_vel = data.qvel[self._joint_dqids]
+
+    # Left wrist velocities
+    l_lin_err = jp.sum(jp.square(joint_vel[0:3] - target_qvel[0:3]))
+    l_ang_err = jp.sum(jp.square(joint_vel[3:6] - target_qvel[3:6]))
+    # Right wrist velocities
+    r_lin_err = jp.sum(jp.square(joint_vel[15:18] - target_qvel[15:18]))
+    r_ang_err = jp.sum(jp.square(joint_vel[18:21] - target_qvel[18:21]))
+
+    lin_err = l_lin_err + r_lin_err
+    ang_err = l_ang_err + r_ang_err
+    rot_coeff = self._config.reward_config.root_rot_err_coeff
+    scale = self._config.reward_config.root_vel_scale
+    return jp.exp(-scale * (lin_err + rot_coeff * ang_err))
+
+  def _reward_key_pos(self, data: mjx.Data, info: dict[str, Any]) -> jax.Array:
+    """Key body (fingertip) cartesian position tracking (DeepMimic key_pos_r).
+
+    Fingertip positions are in wrist-local frame (analogous to DeepMimic's
+    key_pos relative to root).
+    err = sum_k ||p_k - p_k*||²
+    r = exp(-key_pos_scale * err)
+    """
+    traj_idx = ((info["steps"] + info["step_offset"]) % self._traj_len).astype(
+        jp.int32
+    )
+    ref_key_pos = self._traj_key_xpos[traj_idx]  # (N_key, 3)
+
+    cur_key_pos = self._get_key_body_pos(data)  # (N_key, 3) wrist-local
+    key_pos_diff = cur_key_pos - ref_key_pos
+    key_pos_err = jp.sum(jp.square(key_pos_diff))
+    return jp.exp(-self._config.reward_config.key_pos_scale * key_pos_err)
 
   def _reward_action_rate(
       self, act: jax.Array, last_act: jax.Array
@@ -639,16 +796,16 @@ class Massage(mjx_env.MjxEnv):
     """Action rate penalty (1st order): sum of squared first-order differences."""
     return jp.sum(jp.square(act - last_act))
 
-  def _reward_action_smooth(
-      self, act: jax.Array, last_act: jax.Array, last_last_act: jax.Array
-  ) -> jax.Array:
-    """Action smoothness penalty (2nd order): sum of squared second-order differences."""
-    return jp.sum(jp.square(act - 2 * last_act + last_last_act))
+  # def _reward_action_smooth(
+  #     self, act: jax.Array, last_act: jax.Array, last_last_act: jax.Array
+  # ) -> jax.Array:
+  #   """Action smoothness penalty (2nd order): sum of squared second-order differences."""
+  #   return jp.sum(jp.square(act - 2 * last_act + last_last_act))
 
-  def _reward_energy(self, data: mjx.Data) -> jax.Array:
-    """Energy consumption penalty: sum(|qvel * actuator_force|)."""
-    joint_vel = data.qvel[self._joint_dqids]
-    return jp.sum(jp.abs(joint_vel * data.actuator_force))
+  # def _reward_energy(self, data: mjx.Data) -> jax.Array:
+  #   """Energy consumption penalty: sum(|qvel * actuator_force|)."""
+  #   joint_vel = data.qvel[self._joint_dqids]
+  #   return jp.sum(jp.abs(joint_vel * data.actuator_force))
 
   # Accessors. -----------------------------------------------------------------
 
@@ -669,108 +826,108 @@ class Massage(mjx_env.MjxEnv):
     return self._mjx_model
 
 
-def domain_randomize(model: mjx.Model, rng: jax.Array):
-  """Domain randomization for massage task."""
-  mj_model = Massage().mj_model
+# def domain_randomize(model: mjx.Model, rng: jax.Array):
+#   """Domain randomization for massage task."""
+#   mj_model = Massage().mj_model
 
-  # Identify collision geom ids (contype == 1) for friction randomization.
-  collision_geom_ids = [
-      i for i in range(mj_model.ngeom) if mj_model.geom_contype[i] == 1
-  ]
+#   # Identify collision geom ids (contype == 1) for friction randomization.
+#   collision_geom_ids = [
+#       i for i in range(mj_model.ngeom) if mj_model.geom_contype[i] == 1
+#   ]
 
-  # Hand body ids (all bodies except world=0 and human=last).
-  hand_body_ids = jp.array(
-      [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
-  )
+#   # Hand body ids (all bodies except world=0 and human=last).
+#   hand_body_ids = jp.array(
+#       [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
+#   )
 
-  # Joint DOF ids.
-  joint_dof_ids = mjx_env.get_qvel_ids(mj_model, consts.JOINT_NAMES)
+#   # Joint DOF ids.
+#   joint_dof_ids = mjx_env.get_qvel_ids(mj_model, consts.JOINT_NAMES)
 
-  @jax.vmap
-  def rand(rng):
-    # 1. Contact friction: =U(0.3, 1.0) for all collision geoms.
-    rng, key = jax.random.split(rng)
-    friction_val = jax.random.uniform(key, (1,), minval=0.3, maxval=1.0)
-    geom_friction = model.geom_friction.at[collision_geom_ids, 0].set(
-        friction_val
-    )
+#   @jax.vmap
+#   def rand(rng):
+#     # 1. Contact friction: =U(0.3, 1.0) for all collision geoms.
+#     rng, key = jax.random.split(rng)
+#     friction_val = jax.random.uniform(key, (1,), minval=0.3, maxval=1.0)
+#     geom_friction = model.geom_friction.at[collision_geom_ids, 0].set(
+#         friction_val
+#     )
 
-    # 2. Link mass: *U(0.9, 1.1) for each hand body independently.
-    rng, key = jax.random.split(rng)
-    dmass = jax.random.uniform(
-        key, shape=(len(hand_body_ids),), minval=0.9, maxval=1.1
-    )
-    body_mass = model.body_mass.at[hand_body_ids].set(
-        model.body_mass[hand_body_ids] * dmass
-    )
+#     # 2. Link mass: *U(0.9, 1.1) for each hand body independently.
+#     rng, key = jax.random.split(rng)
+#     dmass = jax.random.uniform(
+#         key, shape=(len(hand_body_ids),), minval=0.9, maxval=1.1
+#     )
+#     body_mass = model.body_mass.at[hand_body_ids].set(
+#         model.body_mass[hand_body_ids] * dmass
+#     )
 
-    # 3. Link center-of-mass offset: +U(-5e-3, 5e-3) per body per axis.
-    rng, key = jax.random.split(rng)
-    dpos = jax.random.uniform(
-        key, (len(hand_body_ids), 3), minval=-5e-3, maxval=5e-3
-    )
-    body_ipos = model.body_ipos.at[hand_body_ids].set(
-        model.body_ipos[hand_body_ids] + dpos
-    )
+#     # 3. Link center-of-mass offset: +U(-5e-3, 5e-3) per body per axis.
+#     rng, key = jax.random.split(rng)
+#     dpos = jax.random.uniform(
+#         key, (len(hand_body_ids), 3), minval=-5e-3, maxval=5e-3
+#     )
+#     body_ipos = model.body_ipos.at[hand_body_ids].set(
+#         model.body_ipos[hand_body_ids] + dpos
+#     )
 
-    # 4. Joint friction loss: *U(0.5, 2.0).
-    rng, key = jax.random.split(rng)
-    frictionloss = model.dof_frictionloss[joint_dof_ids] * jax.random.uniform(
-        key, shape=(consts.NV,), minval=0.5, maxval=2.0
-    )
-    dof_frictionloss = model.dof_frictionloss.at[joint_dof_ids].set(
-        frictionloss
-    )
+#     # 4. Joint friction loss: *U(0.5, 2.0).
+#     rng, key = jax.random.split(rng)
+#     frictionloss = model.dof_frictionloss[joint_dof_ids] * jax.random.uniform(
+#         key, shape=(consts.NV,), minval=0.5, maxval=2.0
+#     )
+#     dof_frictionloss = model.dof_frictionloss.at[joint_dof_ids].set(
+#         frictionloss
+#     )
 
-    # 5. Joint armature: *U(1.0, 1.05).
-    rng, key = jax.random.split(rng)
-    armature = model.dof_armature[joint_dof_ids] * jax.random.uniform(
-        key, shape=(consts.NV,), minval=1.0, maxval=1.05
-    )
-    dof_armature = model.dof_armature.at[joint_dof_ids].set(armature)
+#     # 5. Joint armature: *U(1.0, 1.05).
+#     rng, key = jax.random.split(rng)
+#     armature = model.dof_armature[joint_dof_ids] * jax.random.uniform(
+#         key, shape=(consts.NV,), minval=1.0, maxval=1.05
+#     )
+#     dof_armature = model.dof_armature.at[joint_dof_ids].set(armature)
 
-    # 6. Joint damping: *U(0.8, 1.2).
-    rng, key = jax.random.split(rng)
-    damping = model.dof_damping[joint_dof_ids] * jax.random.uniform(
-        key, shape=(consts.NV,), minval=0.8, maxval=1.2
-    )
-    dof_damping = model.dof_damping.at[joint_dof_ids].set(damping)
+#     # 6. Joint damping: *U(0.8, 1.2).
+#     rng, key = jax.random.split(rng)
+#     damping = model.dof_damping[joint_dof_ids] * jax.random.uniform(
+#         key, shape=(consts.NV,), minval=0.8, maxval=1.2
+#     )
+#     dof_damping = model.dof_damping.at[joint_dof_ids].set(damping)
 
-    return (
-        geom_friction,
-        body_mass,
-        body_ipos,
-        dof_frictionloss,
-        dof_armature,
-        dof_damping,
-    )
+#     return (
+#         geom_friction,
+#         body_mass,
+#         body_ipos,
+#         dof_frictionloss,
+#         dof_armature,
+#         dof_damping,
+#     )
 
-  (
-      geom_friction,
-      body_mass,
-      body_ipos,
-      dof_frictionloss,
-      dof_armature,
-      dof_damping,
-  ) = rand(rng)
+#   (
+#       geom_friction,
+#       body_mass,
+#       body_ipos,
+#       dof_frictionloss,
+#       dof_armature,
+#       dof_damping,
+#   ) = rand(rng)
 
-  in_axes = jax.tree_util.tree_map(lambda x: None, model)
-  in_axes = in_axes.tree_replace({
-      "geom_friction": 0,
-      "body_mass": 0,
-      "body_ipos": 0,
-      "dof_frictionloss": 0,
-      "dof_armature": 0,
-      "dof_damping": 0,
-  })
+#   in_axes = jax.tree_util.tree_map(lambda x: None, model)
+#   in_axes = in_axes.tree_replace({
+#       "geom_friction": 0,
+#       "body_mass": 0,
+#       "body_ipos": 0,
+#       "dof_frictionloss": 0,
+#       "dof_armature": 0,
+#       "dof_damping": 0,
+#   })
 
-  model = model.tree_replace({
-      "geom_friction": geom_friction,
-      "body_mass": body_mass,
-      "body_ipos": body_ipos,
-      "dof_frictionloss": dof_frictionloss,
-      "dof_armature": dof_armature,
-      "dof_damping": dof_damping,
-  })
+#   model = model.tree_replace({
+#       "geom_friction": geom_friction,
+#       "body_mass": body_mass,
+#       "body_ipos": body_ipos,
+#       "dof_frictionloss": dof_frictionloss,
+#       "dof_armature": dof_armature,
+#       "dof_damping": dof_damping,
+#   })
 
-  return model, in_axes
+#   return model, in_axes

@@ -22,6 +22,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from mujoco_playground._src.manipulation.xleo_hand import constants as consts
+
 
 def _project_root() -> Path:
   """Walk up from this file to find the project root (directory containing .git)."""
@@ -184,58 +186,18 @@ def _plot_3d(
   print(f"  Saved plot: {save_path}")
 
 
-# Semantic grouping for qpos/qvel (30 joints).
+# Semantic grouping for qpos/qvel (derived from constants).
 # Each entry: (subplot_title, column_indices, column_labels)
 _JOINT_GROUPS = [
-    ("Left Wrist", list(range(0, 6)), ["X", "Y", "Z", "Roll", "Pitch", "Yaw"]),
-    ("Left Finger 0", list(range(6, 9)), ["F0_L0", "F0_L1", "F0_L2"]),
-    ("Left Finger 1", list(range(9, 12)), ["F1_L0", "F1_L1", "F1_L2"]),
-    ("Left Finger 2", list(range(12, 15)), ["F2_L0", "F2_L1", "F2_L2"]),
-    (
-        "Right Wrist",
-        list(range(15, 21)),
-        ["X", "Y", "Z", "Roll", "Pitch", "Yaw"],
-    ),
-    ("Right Finger 0", list(range(21, 24)), ["F0_R0", "F0_R1", "F0_R2"]),
-    ("Right Finger 1", list(range(24, 27)), ["F1_R0", "F1_R1", "F1_R2"]),
-    ("Right Finger 2", list(range(27, 30)), ["F2_R0", "F2_R1", "F2_R2"]),
+    (title, [idx for idx, _ in joints], [lbl for _, lbl in joints])
+    for title, joints in consts.JOINT_GROUPS
 ]
 
-# Body names for tracked_body_xpos (20 bodies).
-_TRACKED_BODY_NAMES = [
-    "L_WRIST",
-    "LINK_F0_L0",
-    "LINK_F0_L1",
-    "LINK_F0_L2",
-    "LINK_F1_L0",
-    "LINK_F1_L1",
-    "LINK_F1_L2",
-    "LINK_F2_L0",
-    "LINK_F2_L1",
-    "LINK_F2_L2",
-    "R_WRIST",
-    "LINK_F0_R0",
-    "LINK_F0_R1",
-    "LINK_F0_R2",
-    "LINK_F1_R0",
-    "LINK_F1_R1",
-    "LINK_F1_R2",
-    "LINK_F2_R0",
-    "LINK_F2_R1",
-    "LINK_F2_R2",
-]
+# Body names for tracked_body_xpos (derived from constants).
+_TRACKED_BODY_NAMES = list(consts.TRACKED_BODY_NAMES)
 
-# Body names for key_body_xpos (8 key bodies).
-_KEY_BODY_NAMES = [
-    "L_WRIST",
-    "LINK_F0_L2",
-    "LINK_F1_L2",
-    "LINK_F2_L2",
-    "R_WRIST",
-    "LINK_F0_R2",
-    "LINK_F1_R2",
-    "LINK_F2_R2",
-]
+# Body names for key_body_xpos (derived from constants).
+_KEY_BODY_NAMES = list(consts.KEY_BODY_NAMES)
 
 
 def plot_all(data: dict, output_dir: Path) -> None:
@@ -268,22 +230,24 @@ def plot_all(data: dict, output_dir: Path) -> None:
 
   # 3. tracked_body_xpos
   if "tracked_body_xpos" in data:
+    tracked_names = data.get("tracked_body_names", _TRACKED_BODY_NAMES)
     _plot_3d(
         data["tracked_body_xpos"],
         times,
         title=f"Tracked Body Positions (xpos) — {T} frames @ {freq} Hz",
-        body_names=_TRACKED_BODY_NAMES,
+        body_names=tracked_names,
         dim_labels=["x", "y", "z"],
         save_path=str(output_dir / "tracked_body_xpos.png"),
     )
 
   # 4. key_body_xpos
   if "key_body_xpos" in data:
+    key_names = data.get("key_body_names", _KEY_BODY_NAMES)
     _plot_3d(
         data["key_body_xpos"],
         times,
         title=f"Key Body Positions (xpos) — {T} frames @ {freq} Hz",
-        body_names=_KEY_BODY_NAMES,
+        body_names=key_names,
         dim_labels=["x", "y", "z"],
         save_path=str(output_dir / "key_body_xpos.png"),
     )
