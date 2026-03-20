@@ -23,7 +23,7 @@ ENV PATH="/root/code/mujoco_playground/.venv/bin:$PATH"
 RUN uv pip install -U "jax[cuda12]" --index-url https://pypi.org/simple
 RUN uv --no-config sync --all-extras --active
 RUN uv pip install tensorboard
-RUN uv pip install nvitop
+RUN uv pip install nvitop s-tui
 
 # Remove copied source — the real project will be bind-mounted at runtime
 RUN find /root/code/mujoco_playground -mindepth 1 -maxdepth 1 ! -name '.venv' -exec rm -rf {} +

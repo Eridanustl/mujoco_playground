@@ -141,11 +141,9 @@ TRACKED_BODY_NAMES = LEFT_BODY_NAMES + RIGHT_BODY_NAMES
 
 # Key body names for key position reward (fingertips + wrists).
 KEY_BODY_NAMES = [
-    "L_WRIST",
     "LINK_F0_L2",
     "LINK_F1_L2",
     "LINK_F2_L2",
-    "R_WRIST",
     "LINK_F0_R2",
     "LINK_F1_R2",
     "LINK_F2_R2",

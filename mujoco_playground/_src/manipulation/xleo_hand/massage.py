@@ -29,7 +29,7 @@ def default_config() -> config_dict.ConfigDict:
       finger_kp=5.0,
       finger_kd=0.1,
       # Future target observation steps (in env steps).
-      tar_obs_steps=[1, 2, 3],
+      target_obs_steps=[1, 2, 3],
       obs_noise=config_dict.create(
           level=1.0,
           scales=config_dict.create(
@@ -406,51 +406,125 @@ class Massage(mjx_env.MjxEnv):
       target_qpos: jax.Array,
       target_qvel: jax.Array,
   ) -> mjx_env.Observation:
-    # Current joint state.
-    joint_pos = data.qpos[self._joint_qids]
-    joint_vel = data.qvel[self._joint_dqids]
-    joint_pos_rel = joint_pos - self._default_pose
+    # DeepMimic-style observation: wrist = root (floating base),
+    # fingers = joints.  Each hand is treated independently.
+    #
+    # Joint layout (per hand, 15 DOF):
+    #   [0:3]   wrist slide XYZ  (root position)
+    #   [3:6]   wrist hinge RPY  (root rotation)
+    #   [6:15]  finger hinges     (joint angles)
+    # Left hand = indices 0..14, Right hand = indices 15..29.
 
-    # Add noise to joint_pos_rel.
+    joint_pos = data.qpos[self._joint_qids]  # (30,)
+    joint_vel = data.qvel[self._joint_dqids]  # (30,)
+
+    # --- Encoder noise (applied to joint positions only) ---
     info["rng"], noise_rng = jax.random.split(info["rng"])
-    noisy_joint_pos_rel = (
-        joint_pos_rel
-        + (2 * jax.random.uniform(noise_rng, shape=joint_pos_rel.shape) - 1)
+    pos_noise = (
+        (2 * jax.random.uniform(noise_rng, shape=joint_pos.shape) - 1)
         * self._config.obs_noise.level
         * self._config.obs_noise.scales.joint_pos
     )
+    # noisy_jpos = joint_pos + pos_noise
+    noisy_jpos = joint_pos
 
-    # Future target observations (N steps ahead) via direct indexing.
-    tar_obs_list = []
-    for step_offset in self._config.tar_obs_steps:
-      future_idx = (traj_idx + step_offset) % self._traj_len
-      tar_qpos = self._traj_qpos[future_idx]
-      tar_pos_rel = tar_qpos - self._default_pose
-      tar_obs_list.append(tar_pos_rel)
+    # === Left hand (wrist = root) ===
+    # Wrist position: XYZ from slide joints (3,)
+    l_wrist_pos = noisy_jpos[0:3]
+    # Wrist rotation: sin/cos encoding of RPY hinge joints (6,)
+    l_wrist_rot_obs = jp.concatenate(
+        [jp.sin(noisy_jpos[3:6]), jp.cos(noisy_jpos[3:6])]
+    )
+    # Wrist velocity: linear (3,) + angular (3,)
+    l_wrist_lin_vel = joint_vel[0:3]
+    l_wrist_ang_vel = joint_vel[3:6]
+    # Finger joint angles relative to default pose (9,)
+    l_finger_qpos = noisy_jpos[6:15] - self._default_pose[6:15]
+    # Finger joint velocities (9,)
+    l_finger_qvel = joint_vel[6:15]
 
-    # Phase encoding: use trajectory index to compute phase.
+    # === Right hand (wrist = root) ===
+    r_wrist_pos = noisy_jpos[15:18]
+    r_wrist_rot_obs = jp.concatenate(
+        [jp.sin(noisy_jpos[18:21]), jp.cos(noisy_jpos[18:21])]
+    )
+    r_wrist_lin_vel = joint_vel[15:18]
+    r_wrist_ang_vel = joint_vel[18:21]
+    r_finger_qpos = noisy_jpos[21:30] - self._default_pose[21:30]
+    r_finger_qvel = joint_vel[21:30]
+
+    # === Phase encoding ===
     phase_angle = 2.0 * jp.pi * traj_idx / self._traj_len
     phase = jp.array([jp.sin(phase_angle), jp.cos(phase_angle)])
 
-    # State for policy (92-dim).
+    # === Future target observations (DeepMimic G1 style, global_obs=True) ===
+    # Per target step per hand:
+    #   wrist_pos: XY = target - current (relative), Z = target (absolute)
+    #   wrist_rot: absolute sin/cos encoding
+    #   finger_qpos: absolute joint angle relative to default pose
+    target_obs_list = []
+    for step_offset in self._config.target_obs_steps:
+      future_idx = (traj_idx + step_offset) % self._traj_len
+      target_qpos_future = self._traj_qpos[future_idx]
+
+      # Left hand target (18,)
+      left_target = jp.concatenate([
+          target_qpos_future[0:3] - joint_pos[0:3],  # wrist pos diff (3,)
+          jp.sin(target_qpos_future[3:6]),
+          jp.cos(target_qpos_future[3:6]),  # wrist rot absolute sin/cos (6,)
+          target_qpos_future[6:15]
+          - self._default_pose[6:15],  # finger qpos absolute (9,)
+      ])
+
+      # Right hand target (18,)
+      right_target = jp.concatenate([
+          target_qpos_future[15:18] - joint_pos[15:18],
+          jp.sin(target_qpos_future[18:21]),
+          jp.cos(target_qpos_future[18:21]),
+          target_qpos_future[21:30] - self._default_pose[21:30],
+      ])
+
+      target_obs_list.append(
+          jp.concatenate([left_target, right_target])
+      )  # (36,)
+
+    target_obs = jp.concatenate(target_obs_list)  # (36 * num_target_steps,)
+
+    # === Actor observation (state) ===
+    # Per hand (33): wrist_pos(3) + wrist_rot_sincos(6) + wrist_lin_vel(3)
+    #   + wrist_ang_vel(3) + finger_qpos(9) + finger_qvel(9)
+    # Total = 33*2 + 2 + 36*num_target_steps + 30
     state_obs = jp.concatenate([
-        noisy_joint_pos_rel,  # 30: current joint positions (with noise)
-        joint_vel,  # 30: current joint velocities
-        phase,  # 2: [sin(phase), cos(phase)]
-        info["last_act"],  # 30: last action
+        # Left hand proprioception (33,)
+        l_wrist_pos,
+        l_wrist_rot_obs,
+        l_wrist_lin_vel,
+        l_wrist_ang_vel,
+        l_finger_qpos,
+        l_finger_qvel,
+        # Right hand proprioception (33,)
+        r_wrist_pos,
+        r_wrist_rot_obs,
+        r_wrist_lin_vel,
+        r_wrist_ang_vel,
+        r_finger_qpos,
+        r_finger_qvel,
+        # Phase (2,)
+        phase,
+        # Future targets (36 * num_target_steps,)
+        target_obs,
+        # Last action (30,)
+        info["last_act"],
     ])
 
-    # Current-frame target for critic error computation.
+    # === Privileged critic observation ===
+    # Actor obs + clean joint state + tracking errors.
+    joint_pos_rel = joint_pos - self._default_pose
     qpos_error = joint_pos - target_qpos
     qvel_error = joint_vel - target_qvel
 
-    # Privileged state for critic (302-dim).
-    # Includes uncorrupted joint state + tracking errors.
     privileged_state = jp.concatenate([
-        state_obs,  # 92: policy observation
-        joint_pos_rel,  # 30: true joint pos (no noise)
-        qpos_error,  # 30: position tracking error (no noise)
-        qvel_error,  # 30: velocity tracking error
+        state_obs,  # full actor observation
     ])
 
     return {
