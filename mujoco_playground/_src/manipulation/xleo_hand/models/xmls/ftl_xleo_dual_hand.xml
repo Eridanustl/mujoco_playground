@@ -60,7 +60,7 @@
 
   <worldbody>
     <!-- Left hand -->
-    <body name="L_WRIST" pos="0 0.09 0.5">
+    <body name="L_WRIST" pos="0 0.09 0.0">
       <inertial pos="0.0475989 -0.0039991 0.000164171" quat="0.000685685 0.650732 -0.096053 0.753208" mass="0.5904" diaginertia="0.000778977 0.000587765 0.000437887"/>
       <joint name="J_LINK_HAND_BASE_L_X" type="slide" axis="1 0 0" range="-2 2" damping="2.0" armature="0.05"/>
       <joint name="J_LINK_HAND_BASE_L_Y" type="slide" axis="0 1 0" range="-2 2" damping="2.0" armature="0.05"/>
@@ -130,7 +130,7 @@
     </body>
 
     <!-- Right hand -->
-    <body name="R_WRIST" pos="0 -0.09 0.5">
+    <body name="R_WRIST" pos="0 -0.09 0.0">
       <inertial pos="0.0475989 0.0039991 0.000164171" quat="0.0859322 0.650312 -0.0305688 0.754172" mass="0.5904" diaginertia="0.000777544 0.000589813 0.000437273"/>
       <joint name="J_LINK_HAND_BASE_R_X" type="slide" axis="1 0 0" range="-2 2" damping="2.0" armature="0.05"/>
       <joint name="J_LINK_HAND_BASE_R_Y" type="slide" axis="0 1 0" range="-2 2" damping="2.0" armature="0.05"/>

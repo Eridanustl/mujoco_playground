@@ -84,6 +84,18 @@ def run(pkl_path: str, speed: float):
   wall_start = time.monotonic()
 
   with mujoco.viewer.launch_passive(model, data) as viewer:
+    # Match simulate's initial view: azimuth/elevation from <global>.
+    viewer.cam.azimuth = 120
+    viewer.cam.elevation = -40
+    viewer.cam.distance = 0.6
+    viewer.cam.lookat[:] = [0.05, 0, 0]
+
+    # Only show group 0 (visual) and 1 (floor), hide collision groups.
+    viewer.opt.geomgroup[0] = True
+    viewer.opt.geomgroup[1] = True
+    viewer.opt.geomgroup[2] = False
+    viewer.opt.geomgroup[3] = False
+
     while viewer.is_running():
       wall_now = time.monotonic() - wall_start
       t = (wall_now * speed) % duration

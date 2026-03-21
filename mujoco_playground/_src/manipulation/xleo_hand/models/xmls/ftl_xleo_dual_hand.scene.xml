@@ -7,12 +7,12 @@
     </default>
   </default>
 
-  <statistic center="0.05 0 0.5" extent="0.6" meansize="0.01"/>
+  <statistic center="0.05 0 0" extent="0.6" meansize="0.01"/>
 
   <visual>
     <!-- <headlight diffuse=".8 .8 .8" ambient=".2 .2 .2" specular="1 1 1"/> -->
     <rgba force="1 0 0 1"/>
-    <global azimuth="120" elevation="-20"/>
+    <global azimuth="120" elevation="-40"/>
     <map force="0.01" stiffness="500"/>
     <scale forcewidth="0.1" contactwidth="0.5" contactheight="0.2"/>
     <quality shadowsize="8192"/>
@@ -26,6 +26,6 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-    <geom name="floor" pos="0 0 -0.25" size="0 0 0.01" type="plane" material="groundplane" contype="2" conaffinity="2"/>
+    <geom name="floor" pos="0 0 -0.25" size="0 0 0.01" type="plane" material="groundplane" contype="1" conaffinity="0"/>
   </worldbody>
 </mujoco>
