@@ -7,7 +7,7 @@
 
   <default>
     <default class="visual">
-      <geom type="mesh" contype="0" conaffinity="0" group="0" density="0" rgba="0.7 0.7 0.7 1"/>
+      <geom type="mesh" contype="0" conaffinity="0" group="0" density="0" rgba="0.1 0.1 0.1 1"/>
     </default>
     <default class="collision">
       <geom type="mesh" group="3" rgba="1 0.5 0 0.5" contype="1" conaffinity="0"/>
@@ -68,7 +68,7 @@
       <joint name="J_LINK_HAND_BASE_L_ROLL" type="hinge" axis="1 0 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_L_PITCH" type="hinge" axis="0 1 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_L_YAW" type="hinge" axis="0 0 1" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
-      <geom class="visual" quat="0.707105 0.707108 0 0" mesh="LINK_HAND_BASE_L"/>
+      <geom class="visual" quat="0.707105 0.707108 0 0" mesh="LINK_HAND_BASE_L" rgba="1 1 1 1"/>
       <geom class="collision" quat="0.707105 0.707108 0 0" mesh="LINK_HAND_BASE_L_convex"/>
       <site name="site_L_WRIST" size="0.001"/>
       <body name="LINK_F0_L0" pos="0.021499 -0.0208651 0.0224999" quat="-2.59734e-06 0.707105 0 0.707108">
@@ -138,7 +138,7 @@
       <joint name="J_LINK_HAND_BASE_R_ROLL" type="hinge" axis="1 0 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_R_PITCH" type="hinge" axis="0 1 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_R_YAW" type="hinge" axis="0 0 1" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
-      <geom class="visual" quat="0.707105 -0.707108 0 0" mesh="LINK_HAND_BASE_R"/>
+      <geom class="visual" quat="0.707105 -0.707108 0 0" mesh="LINK_HAND_BASE_R" rgba="1 1 1 1"/>
       <geom class="collision" quat="0.707105 -0.707108 0 0" mesh="LINK_HAND_BASE_R_convex"/>
       <site name="site_R_WRIST" size="0.001"/>
       <body name="LINK_F0_R0" pos="0.021499 0.0208651 0.0224999" quat="0.707105 0 -0.707108 2.59735e-06">
