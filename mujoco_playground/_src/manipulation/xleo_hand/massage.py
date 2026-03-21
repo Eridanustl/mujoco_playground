@@ -38,20 +38,20 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=0.5,
+              pose=0.35,
               vel=0.1,
-              root_pose=0.15,
+              root_pose=0.35,
               root_vel=0.1,
               key_pos=0.15,
               # Regularization penalties (unchanged).
-              action_rate=-0.01,
+              action_rate=-0.001,
               # action_smooth=-1e-4,
               # energy=-1e-6
           ),
           # DeepMimic exponential reward scales: r = exp(-scale * err).
           pose_scale=0.25,
           vel_scale=0.01,
-          root_pose_scale=5.0,
+          root_pose_scale=10.0,
           root_vel_scale=1.0,
           key_pos_scale=10.0,
           # Coefficient for rotation error within root_pose / root_vel.
@@ -60,7 +60,7 @@ def default_config() -> config_dict.ConfigDict:
           finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.05,
+      pose_termination_dist=0.02,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
@@ -73,7 +73,7 @@ def default_config() -> config_dict.ConfigDict:
           pert_wait_steps=[50, 150],
       ),
       impl="jax",
-      naconmax=30 * 8192,
+      naconmax=30 * 16384,
       njmax=160,
   )
 
@@ -325,9 +325,9 @@ class Massage(mjx_env.MjxEnv):
     metrics = {}
     for k in self._config.reward_config.scales.keys():
       metrics[f"reward/{k}"] = jp.zeros(())
-    metrics["tracking_pos_error"] = jp.zeros(())
-    metrics["tracking_vel_error"] = jp.zeros(())
-    metrics["max_body_pos_error"] = jp.zeros(())
+    metrics["tracking_pos_error_per_step"] = jp.zeros(())
+    metrics["tracking_vel_error_per_step"] = jp.zeros(())
+    metrics["max_body_pos_error_per_step"] = jp.zeros(())
     metrics["term/nan"] = jp.zeros(())
     metrics["term/pose"] = jp.zeros(())
 
@@ -399,16 +399,16 @@ class Massage(mjx_env.MjxEnv):
     # Compute tracking errors for monitoring.
     joint_pos = data.qpos[self._joint_qids]
     joint_vel = data.qvel[self._joint_dqids]
-    state.metrics["tracking_pos_error"] += jp.mean(
+    state.metrics["tracking_pos_error_per_step"] = jp.mean(
         jp.square(joint_pos - target_qpos)
     )
-    state.metrics["tracking_vel_error"] += jp.mean(
+    state.metrics["tracking_vel_error_per_step"] = jp.mean(
         jp.square(joint_vel - target_qvel)
     )
     # Body cartesian position error for monitoring (wrist-local frame for fingers).
     cur_body_pos = self._get_tracked_body_pos(data)
     body_dist_sq = jp.sum(jp.square(cur_body_pos - ref_body_pos), axis=-1)
-    state.metrics["max_body_pos_error"] += jp.sqrt(jp.max(body_dist_sq))
+    state.metrics["max_body_pos_error_per_step"] = jp.sqrt(jp.max(body_dist_sq))
 
     # Termination reason diagnostics.
     for k, v in term_reasons.items():

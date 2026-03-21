@@ -159,10 +159,20 @@ def _plot_3d(
   n_dims = arr.shape[2]
   if dim_labels is None:
     dim_labels = [f"d{d}" for d in range(n_dims)]
-  colors = ["tab:red", "tab:green", "tab:blue", "tab:orange", "tab:purple", "tab:cyan"]
+  colors = [
+      "tab:red",
+      "tab:green",
+      "tab:blue",
+      "tab:orange",
+      "tab:purple",
+      "tab:cyan",
+  ]
   fig, axes = plt.subplots(
-      n_bodies, n_dims, figsize=(6 * n_dims, 2.5 * n_bodies),
-      squeeze=False, sharex=True,
+      n_bodies,
+      n_dims,
+      figsize=(6 * n_dims, 2.5 * n_bodies),
+      squeeze=False,
+      sharex=True,
   )
   for b in range(n_bodies):
     bname = body_names[b] if body_names else f"body {b}"
@@ -299,7 +309,7 @@ def main():
   parser.add_argument(
       "--target_freq",
       type=float,
-      default=100.0,
+      default=50.0,
       help="Target sampling frequency in Hz (default: 100.0)",
   )
   parser.add_argument(

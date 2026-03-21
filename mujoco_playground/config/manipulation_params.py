@@ -172,7 +172,7 @@ def brax_ppo_config(
     )
     rl_config.num_resets_per_eval = 0
   elif env_name == "XleoMassage":
-    rl_config.num_timesteps = 200_000_000
+    rl_config.num_timesteps = 1000_000_000
     rl_config.num_evals = 20
     rl_config.num_minibatches = 32
     rl_config.unroll_length = 40
@@ -180,8 +180,8 @@ def brax_ppo_config(
     rl_config.discounting = 0.99
     rl_config.learning_rate = 1e-4
     rl_config.entropy_cost = 1e-2
-    rl_config.num_envs = 8192
-    rl_config.batch_size = 256
+    rl_config.num_envs = 16384
+    rl_config.batch_size = 512
     rl_config.num_resets_per_eval = 0
     rl_config.network_factory = config_dict.create(
         policy_hidden_layer_sizes=(512, 256, 128),
