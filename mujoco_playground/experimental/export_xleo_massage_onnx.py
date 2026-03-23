@@ -15,7 +15,7 @@
 """将 XleoMassage 任务训练得到的 Brax PPO checkpoint 转换为 ONNX 格式.
 
 该脚本参考 brax_network_to_onnx.ipynb，专门适配 XleoMassage 双手按摩任务。
-转换流程：Brax PPO checkpoint → JAX params → TensorFlow MLP → ONNX
+转换流程：Brax PPO checkpoint → JAX params → Flax MLP → ONNX
 
 用法:
     python export_xleo_massage_onnx.py \
@@ -29,17 +29,17 @@ import argparse
 import functools
 import os
 
-# 抑制 TF/JAX 的 GPU 日志和预分配，避免不必要的显存占用。
+# 抑制 JAX 的 GPU 日志和预分配，避免不必要的显存占用。
 os.environ["MUJOCO_GL"] = "egl"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 
+import flax.linen as nn
 import jax
-import jax.numpy as jp
+import jax.numpy as jnp
 import numpy as np
+import onnx
 import onnxruntime as rt
-import tensorflow as tf
-from tensorflow.keras import layers
-import tf2onnx
+from jax2onnx import to_onnx
 
 from brax.training.acme import running_statistics
 from brax.training.agents.ppo import networks as ppo_networks
@@ -50,97 +50,86 @@ from mujoco_playground.config import manipulation_params
 
 
 # ---------------------------------------------------------------------------
-# TensorFlow MLP：复现 Brax 策略网络结构
+# Flax MLP：复现 Brax 策略网络结构
 # ---------------------------------------------------------------------------
 
-class PolicyMLP(tf.keras.Model):
-  """TensorFlow 策略网络，与 Brax PPO 的 MLP policy 结构一一对应.
+class PolicyMLP(nn.Module):
+  """Flax 策略网络，与 Brax PPO 的 MLP policy 结构一一对应.
 
   特点:
     - 内嵌 running-statistics 归一化 (mean / std)
     - 输出 2 * action_size (均值 + log_std)，取 tanh(mean) 作为确定性动作
     - 隐藏层激活函数用 swish (与 Brax 训练一致)
   """
+  layer_sizes: tuple[int, ...]
+  obs_mean: jnp.ndarray | None = None
+  obs_std: jnp.ndarray | None = None
 
-  def __init__(
-      self,
-      layer_sizes: list[int],
-      activation=tf.nn.swish,
-      mean_std: tuple[tf.Tensor, tf.Tensor] | None = None,
-  ):
-    super().__init__()
-    self._mean = None
-    self._std = None
-    if mean_std is not None:
-      # 保存归一化参数：推理时对输入做 (obs - mean) / std
-      self._mean = tf.Variable(mean_std[0], trainable=False, dtype=tf.float32)
-      self._std = tf.Variable(mean_std[1], trainable=False, dtype=tf.float32)
-
-    # 构建 MLP 层序列，与 Brax flax MLP 的层名 hidden_0, hidden_1, ... 对应
-    self._mlp = tf.keras.Sequential(name="MLP_0")
-    for i, size in enumerate(layer_sizes):
-      self._mlp.add(layers.Dense(
-          size,
-          activation=activation,
-          kernel_initializer="lecun_uniform",
-          name=f"hidden_{i}",
-          use_bias=True,
-      ))
-    # 最后一层不要激活函数（输出原始 logits）
-    if self._mlp.layers:
-      last = self._mlp.layers[-1]
-      if hasattr(last, "activation") and last.activation is not None:
-        last.activation = None
-
-    self.submodules = [self._mlp]
-
-  def call(self, inputs):
-    if isinstance(inputs, list):
-      inputs = inputs[0]
+  @nn.compact
+  def __call__(self, x):
     # 归一化：(obs - mean) / std
-    if self._mean is not None and self._std is not None:
-      inputs = (inputs - self._mean) / self._std
-    logits = self._mlp(inputs)
+    if self.obs_mean is not None and self.obs_std is not None:
+      x = (x - self.obs_mean) / self.obs_std
+
+    # MLP 前向传播：除最后一层外，每层都使用 swish 激活
+    for i, size in enumerate(self.layer_sizes):
+      x = nn.Dense(size, name=f"hidden_{i}")(x)
+      if i < len(self.layer_sizes) - 1:
+        x = nn.swish(x)
+
     # logits = [mean, log_std]，只取 mean 并做 tanh 限幅
-    loc, _ = tf.split(logits, 2, axis=-1)
-    return tf.tanh(loc)
+    loc, _ = jnp.split(x, 2, axis=-1)
+    return jnp.tanh(loc)
 
 
 # ---------------------------------------------------------------------------
-# 权重迁移：JAX params → TensorFlow 模型
+# 权重迁移：Brax JAX params → Flax 模型参数
 # ---------------------------------------------------------------------------
 
-def transfer_weights(
-    jax_params: dict,
-    tf_model: PolicyMLP,
-) -> None:
-  """将 JAX (Flax) 的网络参数复制到对应的 TensorFlow Dense 层.
+def build_flax_params(
+    jax_policy_params: dict,
+    layer_sizes: list[int],
+    state_dim: int,
+    obs_mean: jnp.ndarray | None = None,
+    obs_std: jnp.ndarray | None = None,
+) -> dict:
+  """从 Brax checkpoint 的 JAX 参数构建 Flax 模型参数字典.
 
-  JAX 参数结构示例:
+  Brax 的 policy 参数结构:
     {
       'hidden_0': {'kernel': ndarray, 'bias': ndarray},
       'hidden_1': {'kernel': ndarray, 'bias': ndarray},
-      'hidden_2': {'kernel': ndarray, 'bias': ndarray},
+      ...
     }
 
-  TF 模型中对应的层名为 MLP_0/hidden_0, MLP_0/hidden_1, ...
+  Flax nn.Dense 期望的参数格式完全相同 (kernel, bias)，因此可以直接复用。
   """
-  for layer_name, layer_params in jax_params.items():
-    try:
-      tf_layer = tf_model.get_layer("MLP_0").get_layer(name=layer_name)
-    except ValueError:
-      print(f"  [WARN] TF 模型中未找到层 '{layer_name}'，跳过")
-      continue
+  # 先通过 init 获取正确的参数结构模板
+  model = PolicyMLP(
+      layer_sizes=tuple(layer_sizes),
+      obs_mean=obs_mean,
+      obs_std=obs_std,
+  )
+  dummy = jnp.zeros((1, state_dim))
+  init_params = model.init(jax.random.PRNGKey(42), dummy)["params"]
 
-    if isinstance(tf_layer, tf.keras.layers.Dense):
-      kernel = np.array(layer_params["kernel"])
-      bias = np.array(layer_params["bias"])
-      tf_layer.set_weights([kernel, bias])
-      print(f"  迁移 {layer_name}: kernel {kernel.shape}, bias {bias.shape}")
+  # 用 Brax 的权重替换模板中的值
+  new_params = {}
+  for layer_name in init_params:
+    if layer_name in jax_policy_params:
+      new_params[layer_name] = {
+          "kernel": jnp.array(jax_policy_params[layer_name]["kernel"]),
+          "bias": jnp.array(jax_policy_params[layer_name]["bias"]),
+      }
+      k_shape = jax_policy_params[layer_name]["kernel"].shape
+      b_shape = jax_policy_params[layer_name]["bias"].shape
+      print(f"  迁移 {layer_name}: kernel {k_shape}, bias {b_shape}")
     else:
-      print(f"  [WARN] 未处理的层类型 {layer_name}: {type(tf_layer)}")
+      print(f"  [WARN] Brax 参数中未找到层 '{layer_name}'，使用初始化值")
+      new_params[layer_name] = init_params[layer_name]
 
   print("  权重迁移完成 ✓")
+  return new_params
 
 
 # ---------------------------------------------------------------------------
@@ -222,50 +211,71 @@ def main():
   print("  JAX inference_fn 就绪 ✓")
 
   # ------------------------------------------------------------------
-  # 4. 构建等价的 TensorFlow 模型并迁移权重
+  # 4. 构建等价的 Flax 模型并迁移权重
   # ------------------------------------------------------------------
-  print("[4/6] 构建 TF 策略网络并迁移权重 ...")
+  print("[4/6] 构建 Flax 策略网络并迁移权重 ...")
 
   # 从 checkpoint 中提取 running-statistics 的 mean / std
   # normalizer_params 按 obs key 索引，策略网络只使用 "state"
-  mean = params[0].mean["state"]
-  std = params[0].std["state"]
-  mean_std = (tf.convert_to_tensor(mean), tf.convert_to_tensor(std))
+  obs_mean = jnp.array(params[0].mean["state"])
+  obs_std = jnp.array(params[0].std["state"])
 
   # 隐藏层大小从 PPO config 中读取 (XleoMassage: (512, 256, 128))
   hidden_sizes = list(ppo_params.network_factory.policy_hidden_layer_sizes)
   print(f"  hidden_layer_sizes = {hidden_sizes}")
 
   # 输出层大小 = action_size * 2 (mean + log_std)
-  tf_policy = PolicyMLP(
-      layer_sizes=hidden_sizes + [act_size * 2],
-      activation=tf.nn.swish,
-      mean_std=mean_std,
+  layer_sizes = hidden_sizes + [act_size * 2]
+
+  flax_model = PolicyMLP(
+      layer_sizes=tuple(layer_sizes),
+      obs_mean=obs_mean,
+      obs_std=obs_std,
   )
 
-  # 用零输入触发模型构建（Keras lazy build）
-  dummy_input = tf.zeros((1, state_dim))
-  _ = tf_policy(dummy_input)
-
-  # 迁移 JAX 权重到 TF 模型
+  # 从 Brax checkpoint 构建 Flax 参数
   # params[1] 结构: {'params': {'hidden_0': {...}, 'hidden_1': {...}, ...}}
-  transfer_weights(params[1]["params"], tf_policy)
+  flax_params = build_flax_params(
+      jax_policy_params=params[1]["params"],
+      layer_sizes=layer_sizes,
+      state_dim=state_dim,
+      obs_mean=obs_mean,
+      obs_std=obs_std,
+  )
+
+  # 验证 Flax 模型能正常前向传播
+  dummy_input = jnp.zeros((1, state_dim))
+  flax_output = flax_model.apply({"params": flax_params}, dummy_input)
+  print(f"  Flax 模型输出 shape: {flax_output.shape}")
 
   # ------------------------------------------------------------------
   # 5. 导出 ONNX
   # ------------------------------------------------------------------
   print(f"[5/6] 导出 ONNX → {args.output} ...")
 
-  # 定义输入签名：(batch=1, state_dim) float32, 命名为 "obs"
-  spec = [tf.TensorSpec(shape=(1, state_dim), dtype=tf.float32, name="obs")]
-  tf_policy.output_names = ["continuous_actions"]
+  # 定义纯函数用于 ONNX 导出：将模型参数闭包化
+  def policy_fn(obs):
+    return flax_model.apply({"params": flax_params}, obs)
 
-  model_proto, _ = tf2onnx.convert.from_keras(
-      tf_policy,
-      input_signature=spec,
-      opset=11,  # opset 11 与 Isaac Lab 兼容
-      output_path=args.output,
+  # 使用 jax2onnx 将 JAX 函数转换为 ONNX
+  onnx_model = to_onnx(
+      policy_fn,
+      [jnp.zeros((1, state_dim))],  # 示例输入，用于推断 shape/dtype
   )
+
+  # 重命名输入输出节点，使其与下游部署脚本兼容
+  onnx_model.graph.input[0].name = "obs"
+  onnx_model.graph.output[0].name = "continuous_actions"
+  # 同时更新引用了旧名字的节点
+  for node in onnx_model.graph.node:
+    for i, inp in enumerate(node.input):
+      if inp == onnx_model.graph.input[0].name:
+        pass  # 已经是 "obs"
+    for i, out in enumerate(node.output):
+      if out == onnx_model.graph.output[0].name:
+        pass  # 已经是 "continuous_actions"
+
+  onnx.save(onnx_model, args.output)
   print(f"  ONNX 导出完成 ✓  →  {args.output}")
 
   # ------------------------------------------------------------------
@@ -278,8 +288,8 @@ def main():
 
   # JAX 推理：inference_fn 接收 obs dict
   jax_obs = {
-      "state": jp.ones(obs_size["state"]),
-      "privileged_state": jp.zeros(obs_size["privileged_state"]),
+      "state": jnp.ones(obs_size["state"]),
+      "privileged_state": jnp.zeros(obs_size["privileged_state"]),
   }
   jax_pred, _ = inference_fn(jax_obs, jax.random.PRNGKey(0))
   jax_pred = np.array(jax_pred)
