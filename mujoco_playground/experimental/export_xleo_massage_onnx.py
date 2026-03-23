@@ -53,6 +53,7 @@ from mujoco_playground.config import manipulation_params
 # Flax MLP：复现 Brax 策略网络结构
 # ---------------------------------------------------------------------------
 
+
 class PolicyMLP(nn.Module):
   """Flax 策略网络，与 Brax PPO 的 MLP policy 结构一一对应.
 
@@ -61,6 +62,7 @@ class PolicyMLP(nn.Module):
     - 输出 2 * action_size (均值 + log_std)，取 tanh(mean) 作为确定性动作
     - 隐藏层激活函数用 swish (与 Brax 训练一致)
   """
+
   layer_sizes: tuple[int, ...]
   obs_mean: jnp.ndarray | None = None
   obs_std: jnp.ndarray | None = None
@@ -85,6 +87,7 @@ class PolicyMLP(nn.Module):
 # ---------------------------------------------------------------------------
 # 权重迁移：Brax JAX params → Flax 模型参数
 # ---------------------------------------------------------------------------
+
 
 def build_flax_params(
     jax_policy_params: dict,
@@ -132,10 +135,6 @@ def build_flax_params(
   return new_params
 
 
-# ---------------------------------------------------------------------------
-# 主函数
-# ---------------------------------------------------------------------------
-
 def main():
   parser = argparse.ArgumentParser(
       description="将 XleoMassage Brax PPO checkpoint 导出为 ONNX 格式"
@@ -144,7 +143,10 @@ def main():
       "--ckpt_path",
       type=str,
       required=True,
-      help="Brax PPO checkpoint 目录路径 (如 checkpoints/XleoMassage-20260319-123456)",
+      help=(
+          "Brax PPO checkpoint 目录路径 (如"
+          " checkpoints/XleoMassage-20260319-123456)"
+      ),
   )
   parser.add_argument(
       "--output",
@@ -175,8 +177,10 @@ def main():
   env_cfg = manipulation.get_default_config(env_name)
   env = manipulation.load(env_name, config=env_cfg)
 
-  obs_size = env.observation_size   # dict: {"state": (92,), "privileged_state": (302,)}
-  act_size = env.action_size        # 30
+  obs_size = (
+      env.observation_size
+  )  # dict: {"state": (92,), "privileged_state": (302,)}
+  act_size = env.action_size  # 30
   state_dim = obs_size["state"][0]  # 92 — 策略网络的输入维度
   print(f"  obs_size  = {obs_size}")
   print(f"  act_size  = {act_size}")
@@ -298,9 +302,7 @@ def main():
   onnx_session = rt.InferenceSession(
       args.output, providers=["CPUExecutionProvider"]
   )
-  onnx_pred = onnx_session.run(
-      ["continuous_actions"], {"obs": test_np}
-  )[0][0]
+  onnx_pred = onnx_session.run(["continuous_actions"], {"obs": test_np})[0][0]
 
   max_diff = np.max(np.abs(jax_pred - onnx_pred))
   print(f"  JAX  output (前5): {jax_pred[:5]}")
