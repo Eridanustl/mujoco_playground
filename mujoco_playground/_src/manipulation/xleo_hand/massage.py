@@ -60,7 +60,7 @@ def default_config() -> config_dict.ConfigDict:
           finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.03,
+      pose_termination_dist=0.02,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
