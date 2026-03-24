@@ -60,7 +60,7 @@ class PolicyMLP(nn.Module):
   特点:
     - 内嵌 running-statistics 归一化 (mean / std)
     - 输出 2 * action_size (均值 + log_std)，取 tanh(mean) 作为确定性动作
-    - 隐藏层激活函数用 swish (与 Brax 训练一致)
+    - 隐藏层激活函数用 elu (与 Brax 训练一致)
   """
 
   layer_sizes: tuple[int, ...]
@@ -73,15 +73,13 @@ class PolicyMLP(nn.Module):
     if self.obs_mean is not None and self.obs_std is not None:
       x = (x - self.obs_mean) / self.obs_std
 
-    # MLP 前向传播：除最后一层外，每层都使用 swish 激活
+    # MLP 前向传播：除最后一层外，每层都使用 elu 激活
     for i, size in enumerate(self.layer_sizes):
       x = nn.Dense(size, name=f"hidden_{i}")(x)
       if i < len(self.layer_sizes) - 1:
-        x = nn.swish(x)
+        x = nn.elu(x)
 
-    # logits = [mean, log_std]，只取 mean 并做 tanh 限幅
-    loc, _ = jnp.split(x, 2, axis=-1)
-    return jnp.tanh(loc)
+    return x
 
 
 # ---------------------------------------------------------------------------
@@ -98,14 +96,23 @@ def build_flax_params(
 ) -> dict:
   """从 Brax checkpoint 的 JAX 参数构建 Flax 模型参数字典.
 
-  Brax 的 policy 参数结构:
+  Brax PPO 的 policy 参数结构:
     {
-      'hidden_0': {'kernel': ndarray, 'bias': ndarray},
-      'hidden_1': {'kernel': ndarray, 'bias': ndarray},
-      ...
+      'MLP_0': {
+        'hidden_0': {'kernel': ndarray, 'bias': ndarray},
+        'hidden_1': {'kernel': ndarray, 'bias': ndarray},
+        ...
+      },
+      'Dense_0': {'kernel': ndarray, 'bias': ndarray},  # 输出层
+      'std_logparam': {'log_value': ndarray},            # (仅 normal 分布)
     }
 
-  Flax nn.Dense 期望的参数格式完全相同 (kernel, bias)，因此可以直接复用。
+  Flax PolicyMLP 的参数结构 (hidden_0..N-1 依次对应隐藏层和输出层):
+    {
+      'hidden_0': {'kernel': ndarray, 'bias': ndarray},
+      ...
+      'hidden_N-1': {'kernel': ndarray, 'bias': ndarray},  # 输出层
+    }
   """
   # 先通过 init 获取正确的参数结构模板
   model = PolicyMLP(
@@ -116,20 +123,49 @@ def build_flax_params(
   dummy = jnp.zeros((1, state_dim))
   init_params = model.init(jax.random.PRNGKey(42), dummy)["params"]
 
-  # 用 Brax 的权重替换模板中的值
+  # 构建 Brax → Flax 的层名映射
+  # Brax 隐藏层在 MLP_0/hidden_i，输出层在 Dense_0
+  brax_mlp = jax_policy_params.get("MLP_0", {})
+  brax_output = jax_policy_params.get("Dense_0", None)
+  num_layers = len(layer_sizes)  # 隐藏层 + 输出层
+
   new_params = {}
-  for layer_name in init_params:
-    if layer_name in jax_policy_params:
-      new_params[layer_name] = {
-          "kernel": jnp.array(jax_policy_params[layer_name]["kernel"]),
-          "bias": jnp.array(jax_policy_params[layer_name]["bias"]),
-      }
-      k_shape = jax_policy_params[layer_name]["kernel"].shape
-      b_shape = jax_policy_params[layer_name]["bias"].shape
-      print(f"  迁移 {layer_name}: kernel {k_shape}, bias {b_shape}")
+  for i, layer_name in enumerate(sorted(init_params.keys())):
+    if i < num_layers - 1:
+      # 隐藏层：从 MLP_0/hidden_i 取
+      brax_key = f"hidden_{i}"
+      if brax_key in brax_mlp:
+        new_params[layer_name] = {
+            "kernel": jnp.array(brax_mlp[brax_key]["kernel"]),
+            "bias": jnp.array(brax_mlp[brax_key]["bias"]),
+        }
+        k_shape = brax_mlp[brax_key]["kernel"].shape
+        b_shape = brax_mlp[brax_key]["bias"].shape
+        print(
+            f"  迁移 {layer_name} ← MLP_0/{brax_key}:"
+            f" kernel {k_shape}, bias {b_shape}"
+        )
+      else:
+        print(
+            f"  [WARN] Brax 参数中未找到 MLP_0/{brax_key}，使用初始化值"
+        )
+        new_params[layer_name] = init_params[layer_name]
     else:
-      print(f"  [WARN] Brax 参数中未找到层 '{layer_name}'，使用初始化值")
-      new_params[layer_name] = init_params[layer_name]
+      # 输出层：从 Dense_0 取
+      if brax_output is not None:
+        new_params[layer_name] = {
+            "kernel": jnp.array(brax_output["kernel"]),
+            "bias": jnp.array(brax_output["bias"]),
+        }
+        k_shape = brax_output["kernel"].shape
+        b_shape = brax_output["bias"].shape
+        print(
+            f"  迁移 {layer_name} ← Dense_0:"
+            f" kernel {k_shape}, bias {b_shape}"
+        )
+      else:
+        print(f"  [WARN] Brax 参数中未找到 Dense_0，使用初始化值")
+        new_params[layer_name] = init_params[layer_name]
 
   print("  权重迁移完成 ✓")
   return new_params
@@ -228,8 +264,11 @@ def main():
   hidden_sizes = list(ppo_params.network_factory.policy_hidden_layer_sizes)
   print(f"  hidden_layer_sizes = {hidden_sizes}")
 
-  # 输出层大小 = action_size * 2 (mean + log_std)
-  layer_sizes = hidden_sizes + [act_size * 2]
+  # 输出层大小 = action_size
+  if ppo_params.network_factory.distribution_type == "normal":
+    layer_sizes = hidden_sizes + [act_size]
+  else:
+    layer_sizes = hidden_sizes + [act_size * 2]
 
   flax_model = PolicyMLP(
       layer_sizes=tuple(layer_sizes),
@@ -238,7 +277,7 @@ def main():
   )
 
   # 从 Brax checkpoint 构建 Flax 参数
-  # params[1] 结构: {'params': {'hidden_0': {...}, 'hidden_1': {...}, ...}}
+  # params[1] 结构: {'params': {'MLP_0': {'hidden_0': ...}, 'Dense_0': ..., ...}}
   flax_params = build_flax_params(
       jax_policy_params=params[1]["params"],
       layer_sizes=layer_sizes,
@@ -268,19 +307,30 @@ def main():
   )
 
   # 重命名输入输出节点，使其与下游部署脚本兼容
+  old_input_name = onnx_model.graph.input[0].name
+  old_output_name = onnx_model.graph.output[0].name
   onnx_model.graph.input[0].name = "obs"
   onnx_model.graph.output[0].name = "continuous_actions"
   # 同时更新引用了旧名字的节点
   for node in onnx_model.graph.node:
     for i, inp in enumerate(node.input):
-      if inp == onnx_model.graph.input[0].name:
-        pass  # 已经是 "obs"
+      if inp == old_input_name:
+        node.input[i] = "obs"
     for i, out in enumerate(node.output):
-      if out == onnx_model.graph.output[0].name:
-        pass  # 已经是 "continuous_actions"
+      if out == old_output_name:
+        node.output[i] = "continuous_actions"
 
   onnx.save(onnx_model, args.output)
   print(f"  ONNX 导出完成 ✓  →  {args.output}")
+
+  # 保存 normalizer 统计量，供部署脚本使用
+  norm_path = args.output.replace(".onnx", "_norm.npz")
+  np.savez(
+      norm_path,
+      obs_mean=np.array(obs_mean),
+      obs_std=np.array(obs_std),
+  )
+  print(f"  Normalizer stats →  {norm_path}")
 
   # ------------------------------------------------------------------
   # 6. 验证：对比 JAX vs ONNX 推理结果
@@ -305,16 +355,20 @@ def main():
   onnx_pred = onnx_session.run(["continuous_actions"], {"obs": test_np})[0][0]
 
   max_diff = np.max(np.abs(jax_pred - onnx_pred))
+  # 使用相对误差，避免大数值时绝对误差误判
+  max_abs = np.max(np.abs(jax_pred))
+  rel_diff = max_diff / max(max_abs, 1e-8)
   print(f"  JAX  output (前5): {jax_pred[:5]}")
   print(f"  ONNX output (前5): {onnx_pred[:5]}")
   print(f"  max |JAX - ONNX|  = {max_diff:.2e}")
+  print(f"  相对误差            = {rel_diff:.2e}")
 
-  if max_diff < 1e-5:
-    print("  一致性检查通过 ✓ (diff < 1e-5)")
-  elif max_diff < 1e-3:
-    print("  一致性检查警告 ⚠ (1e-5 < diff < 1e-3，精度可接受)")
+  if rel_diff < 1e-5:
+    print("  一致性检查通过 ✓ (相对误差 < 1e-5)")
+  elif rel_diff < 1e-3:
+    print("  一致性检查通过 ✓ (相对误差 < 1e-3，float32 精度可接受)")
   else:
-    print("  一致性检查失败 ✗ (diff >= 1e-3，请检查权重迁移)")
+    print("  一致性检查失败 ✗ (相对误差 >= 1e-3，请检查权重迁移)")
 
   print(f"\n完成！ONNX 模型已保存到: {args.output}")
   print("可复制到 sim2sim/onnx/ 并运行:")
