@@ -55,7 +55,8 @@ def default_config() -> config_dict.ConfigDict:
           root_vel_scale=1.0,
           key_pos_scale=10.0,
           # Coefficient for rotation error within root_pose / root_vel.
-          root_rot_err_coeff=0.1,
+          root_pose_rot_coeff=0.1,
+          root_vel_rot_coeff=0.1,
           # Per-finger-joint error weights (18 = 9 left + 9 right).
           finger_err_w=[1.0] * 18,
       ),
@@ -746,9 +747,9 @@ class Massage(mjx_env.MjxEnv):
     r_pos_err = jp.sum(jp.square(joint_pos[15:18] - target_qpos[15:18]))
     r_rot_err = jp.sum(jp.square(joint_pos[18:21] - target_qpos[18:21]))
 
-    pos_err = l_pos_err + r_pos_err
+    pos_err = (l_pos_err + r_pos_err) * 20.0  # normalize for cm-scale range
     rot_err = l_rot_err + r_rot_err
-    rot_coeff = self._config.reward_config.root_rot_err_coeff
+    rot_coeff = self._config.reward_config.root_pose_rot_coeff
     scale = self._config.reward_config.root_pose_scale
     return jp.exp(-scale * (pos_err + rot_coeff * rot_err))
 
@@ -773,7 +774,7 @@ class Massage(mjx_env.MjxEnv):
 
     lin_err = l_lin_err + r_lin_err
     ang_err = l_ang_err + r_ang_err
-    rot_coeff = self._config.reward_config.root_rot_err_coeff
+    rot_coeff = self._config.reward_config.root_vel_rot_coeff
     scale = self._config.reward_config.root_vel_scale
     return jp.exp(-scale * (lin_err + rot_coeff * ang_err))
 
