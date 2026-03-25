@@ -1,5 +1,6 @@
 """Massage task for dual xleo hands."""
 
+import functools
 import pickle
 from typing import Any, Dict, Optional, Union
 
@@ -30,7 +31,7 @@ def default_config() -> config_dict.ConfigDict:
       # Future target observation steps (in env steps).
       target_obs_steps=[1, 2, 3],
       obs_noise=config_dict.create(
-          level=0,
+          level=1,
           scales=config_dict.create(
               joint_pos=0.05,
           ),
@@ -95,6 +96,41 @@ def get_assets() -> Dict[str, bytes]:
   for f in convex_dir.glob("*.stl"):
     assets[f"convex_new/{f.name}"] = f.read_bytes()
   return assets
+
+
+@functools.lru_cache(maxsize=1)
+def _domain_randomization_metadata():
+  """Loads static ids used by domain randomization once."""
+  mj_model = mujoco.MjModel.from_xml_string(
+      epath.Path(consts.SCENE_XML).read_text(), assets=get_assets()
+  )
+
+  hand_body_ids = jp.array(
+      [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES], dtype=jp.int32
+  )
+  joint_dof_ids = jp.array(
+      mjx_env.get_qvel_ids(mj_model, consts.JOINT_NAMES), dtype=jp.int32
+  )
+
+  hand_body_id_set = set(int(body_id) for body_id in hand_body_ids.tolist())
+  collision_geom_ids = jp.array(
+      [
+          geom_id
+          for geom_id in range(mj_model.ngeom)
+          if mj_model.geom_bodyid[geom_id] in hand_body_id_set
+          and (
+              mj_model.geom_contype[geom_id] != 0
+              or mj_model.geom_conaffinity[geom_id] != 0
+          )
+      ],
+      dtype=jp.int32,
+  )
+
+  return {
+      "collision_geom_ids": collision_geom_ids,
+      "hand_body_ids": hand_body_ids,
+      "joint_dof_ids": joint_dof_ids,
+  }
 
 
 class Massage(mjx_env.MjxEnv):
@@ -832,108 +868,98 @@ class Massage(mjx_env.MjxEnv):
     return self._mjx_model
 
 
-# def domain_randomize(model: mjx.Model, rng: jax.Array):
-#   """Domain randomization for massage task."""
-#   mj_model = Massage().mj_model
+def domain_randomize(model: mjx.Model, rng: jax.Array):
+  """Domain randomization for massage task."""
+  metadata = _domain_randomization_metadata()
+  collision_geom_ids = metadata["collision_geom_ids"]
+  hand_body_ids = metadata["hand_body_ids"]
+  joint_dof_ids = metadata["joint_dof_ids"]
 
-#   # Identify collision geom ids (contype == 1) for friction randomization.
-#   collision_geom_ids = [
-#       i for i in range(mj_model.ngeom) if mj_model.geom_contype[i] == 1
-#   ]
+  @jax.vmap
+  def rand(rng):
+    # 1. Contact friction: =U(0.3, 1.0) for collision-enabled hand geoms.
+    rng, key = jax.random.split(rng)
+    friction_val = jax.random.uniform(key, (1,), minval=0.3, maxval=1.0)
+    geom_friction = model.geom_friction.at[collision_geom_ids, 0].set(
+        friction_val
+    )
 
-#   # Hand body ids (all bodies except world=0 and human=last).
-#   hand_body_ids = jp.array(
-#       [mj_model.body(n).id for n in consts.TRACKED_BODY_NAMES]
-#   )
+    # 2. Link mass: *U(0.9, 1.1) for each hand body independently.
+    rng, key = jax.random.split(rng)
+    dmass = jax.random.uniform(
+        key, shape=(len(hand_body_ids),), minval=0.9, maxval=1.1
+    )
+    body_mass = model.body_mass.at[hand_body_ids].set(
+        model.body_mass[hand_body_ids] * dmass
+    )
 
-#   # Joint DOF ids.
-#   joint_dof_ids = mjx_env.get_qvel_ids(mj_model, consts.JOINT_NAMES)
+    # 3. Link center-of-mass offset: +U(-5e-3, 5e-3) per body per axis.
+    rng, key = jax.random.split(rng)
+    dpos = jax.random.uniform(
+        key, (len(hand_body_ids), 3), minval=-5e-3, maxval=5e-3
+    )
+    body_ipos = model.body_ipos.at[hand_body_ids].set(
+        model.body_ipos[hand_body_ids] + dpos
+    )
 
-#   @jax.vmap
-#   def rand(rng):
-#     # 1. Contact friction: =U(0.3, 1.0) for all collision geoms.
-#     rng, key = jax.random.split(rng)
-#     friction_val = jax.random.uniform(key, (1,), minval=0.3, maxval=1.0)
-#     geom_friction = model.geom_friction.at[collision_geom_ids, 0].set(
-#         friction_val
-#     )
+    # 4. Joint friction loss: *U(0.5, 2.0).
+    rng, key = jax.random.split(rng)
+    frictionloss = model.dof_frictionloss[joint_dof_ids] * jax.random.uniform(
+        key, shape=(consts.NV,), minval=0.5, maxval=2.0
+    )
+    dof_frictionloss = model.dof_frictionloss.at[joint_dof_ids].set(
+        frictionloss
+    )
 
-#     # 2. Link mass: *U(0.9, 1.1) for each hand body independently.
-#     rng, key = jax.random.split(rng)
-#     dmass = jax.random.uniform(
-#         key, shape=(len(hand_body_ids),), minval=0.9, maxval=1.1
-#     )
-#     body_mass = model.body_mass.at[hand_body_ids].set(
-#         model.body_mass[hand_body_ids] * dmass
-#     )
+    # 5. Joint armature: *U(1.0, 1.05).
+    rng, key = jax.random.split(rng)
+    armature = model.dof_armature[joint_dof_ids] * jax.random.uniform(
+        key, shape=(consts.NV,), minval=1.0, maxval=1.05
+    )
+    dof_armature = model.dof_armature.at[joint_dof_ids].set(armature)
 
-#     # 3. Link center-of-mass offset: +U(-5e-3, 5e-3) per body per axis.
-#     rng, key = jax.random.split(rng)
-#     dpos = jax.random.uniform(
-#         key, (len(hand_body_ids), 3), minval=-5e-3, maxval=5e-3
-#     )
-#     body_ipos = model.body_ipos.at[hand_body_ids].set(
-#         model.body_ipos[hand_body_ids] + dpos
-#     )
+    # 6. Joint damping: *U(0.8, 1.2).
+    rng, key = jax.random.split(rng)
+    damping = model.dof_damping[joint_dof_ids] * jax.random.uniform(
+        key, shape=(consts.NV,), minval=0.8, maxval=1.2
+    )
+    dof_damping = model.dof_damping.at[joint_dof_ids].set(damping)
 
-#     # 4. Joint friction loss: *U(0.5, 2.0).
-#     rng, key = jax.random.split(rng)
-#     frictionloss = model.dof_frictionloss[joint_dof_ids] * jax.random.uniform(
-#         key, shape=(consts.NV,), minval=0.5, maxval=2.0
-#     )
-#     dof_frictionloss = model.dof_frictionloss.at[joint_dof_ids].set(
-#         frictionloss
-#     )
+    return (
+        geom_friction,
+        body_mass,
+        body_ipos,
+        dof_frictionloss,
+        dof_armature,
+        dof_damping,
+    )
 
-#     # 5. Joint armature: *U(1.0, 1.05).
-#     rng, key = jax.random.split(rng)
-#     armature = model.dof_armature[joint_dof_ids] * jax.random.uniform(
-#         key, shape=(consts.NV,), minval=1.0, maxval=1.05
-#     )
-#     dof_armature = model.dof_armature.at[joint_dof_ids].set(armature)
+  (
+      geom_friction,
+      body_mass,
+      body_ipos,
+      dof_frictionloss,
+      dof_armature,
+      dof_damping,
+  ) = rand(rng)
 
-#     # 6. Joint damping: *U(0.8, 1.2).
-#     rng, key = jax.random.split(rng)
-#     damping = model.dof_damping[joint_dof_ids] * jax.random.uniform(
-#         key, shape=(consts.NV,), minval=0.8, maxval=1.2
-#     )
-#     dof_damping = model.dof_damping.at[joint_dof_ids].set(damping)
+  in_axes = jax.tree_util.tree_map(lambda x: None, model)
+  in_axes = in_axes.tree_replace({
+      "geom_friction": 0,
+      "body_mass": 0,
+      "body_ipos": 0,
+      "dof_frictionloss": 0,
+      "dof_armature": 0,
+      "dof_damping": 0,
+  })
 
-#     return (
-#         geom_friction,
-#         body_mass,
-#         body_ipos,
-#         dof_frictionloss,
-#         dof_armature,
-#         dof_damping,
-#     )
+  model = model.tree_replace({
+      "geom_friction": geom_friction,
+      "body_mass": body_mass,
+      "body_ipos": body_ipos,
+      "dof_frictionloss": dof_frictionloss,
+      "dof_armature": dof_armature,
+      "dof_damping": dof_damping,
+  })
 
-#   (
-#       geom_friction,
-#       body_mass,
-#       body_ipos,
-#       dof_frictionloss,
-#       dof_armature,
-#       dof_damping,
-#   ) = rand(rng)
-
-#   in_axes = jax.tree_util.tree_map(lambda x: None, model)
-#   in_axes = in_axes.tree_replace({
-#       "geom_friction": 0,
-#       "body_mass": 0,
-#       "body_ipos": 0,
-#       "dof_frictionloss": 0,
-#       "dof_armature": 0,
-#       "dof_damping": 0,
-#   })
-
-#   model = model.tree_replace({
-#       "geom_friction": geom_friction,
-#       "body_mass": body_mass,
-#       "body_ipos": body_ipos,
-#       "dof_frictionloss": dof_frictionloss,
-#       "dof_armature": dof_armature,
-#       "dof_damping": dof_damping,
-#   })
-
-#   return model, in_axes
+  return model, in_axes
