@@ -13,7 +13,6 @@ import pickle
 from dataclasses import asdict, dataclass, fields
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import mujoco
 import numpy as np
 from etils import epath
@@ -41,9 +40,9 @@ WRIST_JOINTS = [
 FINGER_JOINTS = [
     # F0 (thumb) - separate amplitudes
     ("J_F0_L0", 0.3),
-    ("J_F0_L1", 0.4),
+    ("J_F0_L1", 0),
     ("J_F0_R0", 0.3),
-    ("J_F0_R1", 0.4),
+    ("J_F0_R1", 0),
     # F1
     ("J_F1_L0", 0.7),
     ("J_F1_R0", 0.7),
@@ -76,7 +75,7 @@ def _project_root() -> Path:
 @dataclass
 class MassageConfig:
   # Wrist Y-axis
-  wrist_amplitude: float = 0.05
+  wrist_amplitude: float = 0.04
   wrist_period: float = 2.0
   wrist_phase: float = 0.0
   # Finger base joints
@@ -207,7 +206,9 @@ def precompute_body_xpos(data: dict) -> dict:
   left_wrist_idx = 0
   right_wrist_idx = n_left  # 10
   left_finger_slice = slice(1, n_left)  # 1..9
-  right_finger_slice = slice(n_left + 1, len(consts.TRACKED_BODY_NAMES))  # 11..19
+  right_finger_slice = slice(
+      n_left + 1, len(consts.TRACKED_BODY_NAMES)
+  )  # 11..19
 
   # KEY_BODY_NAMES: first 3 are left fingertips, last 3 are right fingertips
   n_left_key = len([n for n in consts.KEY_BODY_NAMES if "_L" in n])
@@ -239,107 +240,29 @@ def precompute_body_xpos(data: dict) -> dict:
     # Left finger bodies: transform to left wrist local frame
     left_world = all_xpos[left_finger_slice]  # (9, 3)
     tracked_xpos[t, left_finger_slice] = (
-        (left_world - l_wrist_pos) @ l_wrist_rot  # R^T @ delta = delta @ R
-    )
+        left_world - l_wrist_pos
+    ) @ l_wrist_rot  # R^T @ delta = delta @ R
 
     # Right finger bodies: transform to right wrist local frame
     right_world = all_xpos[right_finger_slice]  # (9, 3)
     tracked_xpos[t, right_finger_slice] = (
-        (right_world - r_wrist_pos) @ r_wrist_rot
-    )
+        right_world - r_wrist_pos
+    ) @ r_wrist_rot
 
     # Key body xpos (fingertips): also in wrist-local frame
     all_key_xpos = mj_data.xpos[key_body_ids].copy()
     key_xpos[t, :n_left_key] = (
-        (all_key_xpos[:n_left_key] - l_wrist_pos) @ l_wrist_rot
-    )
+        all_key_xpos[:n_left_key] - l_wrist_pos
+    ) @ l_wrist_rot
     key_xpos[t, n_left_key:] = (
-        (all_key_xpos[n_left_key:] - r_wrist_pos) @ r_wrist_rot
-    )
+        all_key_xpos[n_left_key:] - r_wrist_pos
+    ) @ r_wrist_rot
 
   data["tracked_body_xpos"] = tracked_xpos
   data["key_body_xpos"] = key_xpos
   data["tracked_body_names"] = list(consts.TRACKED_BODY_NAMES)
   data["key_body_names"] = list(consts.KEY_BODY_NAMES)
   return data
-
-
-# ---------------------------------------------------------------------------
-# Plotting
-# ---------------------------------------------------------------------------
-
-
-def _plot_grouped(
-    data_array: np.ndarray,
-    freq: float,
-    title: str,
-    ylabel: str,
-    output_path: Path,
-) -> None:
-  """Plot grouped subplots matching the qpos.png reference style.
-
-  Each body-part group gets one subplot row. Multiple joints within a group
-  are overlaid as separate colored lines with a legend.
-
-  Args:
-    data_array: (T, NUM_JOINTS) array of qpos or qvel.
-    freq: Sampling frequency in Hz.
-    title: Overall figure title.
-    ylabel: Y-axis label for every subplot.
-    output_path: Where to save the figure.
-  """
-  n_groups = len(consts.JOINT_GROUPS)
-  T = data_array.shape[0]
-  t = np.arange(T) / freq
-
-  fig, axes = plt.subplots(
-      n_groups, 1, figsize=(10, 2.4 * n_groups), sharex=True
-  )
-  if n_groups == 1:
-    axes = [axes]
-
-  for ax, (group_name, joints) in zip(axes, consts.JOINT_GROUPS):
-    for idx, label in joints:
-      ax.plot(t, data_array[:, idx], linewidth=1.5, label=label)
-    ax.set_ylabel(ylabel, fontsize=10)
-    ax.set_title(group_name, fontsize=11, fontweight="bold", loc="left")
-    ax.legend(fontsize=8, loc="upper right", ncol=len(joints), framealpha=0.8)
-    ax.grid(True, alpha=0.3)
-
-  axes[-1].set_xlabel("Time (s)", fontsize=11)
-  fig.suptitle(
-      f"{title} \u2014 {T} frames @ {freq} Hz",
-      fontsize=13,
-      fontweight="bold",
-  )
-  fig.tight_layout()
-  fig.savefig(output_path, dpi=150)
-  plt.close(fig)
-  print(f"  Saved {output_path.name}")
-
-
-def plot_trajectories(data: dict, output_dir: Path) -> None:
-  """Plot qpos and qvel curves grouped by body part and save to output_dir."""
-  output_dir.mkdir(parents=True, exist_ok=True)
-  freq = data["data_freq"]
-
-  # Grouped qpos plot (matches data/plots/qpos.png style)
-  _plot_grouped(
-      data["qpos"],
-      freq,
-      "Joint Positions (qpos)",
-      "Position (rad/m)",
-      output_dir / "120hz_qpos.png",
-  )
-
-  # Grouped qvel plot (same layout)
-  _plot_grouped(
-      data["qvel"],
-      freq,
-      "Joint Velocities (qvel)",
-      "Velocity (rad/s)",
-      output_dir / "120hz_qvel.png",
-  )
 
 
 # ---------------------------------------------------------------------------
@@ -389,7 +312,10 @@ def main():
   # Plot trajectories and save to data/ folder
   plot_dir = _project_root() / "data" / "plots"
   print(f"Plotting joint trajectories to {plot_dir} ...")
-  plot_trajectories(data, plot_dir)
+  from mujoco_playground._src.manipulation.xleo_hand.tools.plot_utils import plot_all
+
+  freq = data["data_freq"]
+  plot_all(data, plot_dir, prefix=f"{int(freq)}hz_origin_")
 
 
 if __name__ == "__main__":

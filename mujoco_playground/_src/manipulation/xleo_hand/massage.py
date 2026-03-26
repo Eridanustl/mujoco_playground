@@ -39,11 +39,12 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=0.35,
-              vel=0.1,
-              root_pose=0.35,
-              root_vel=0.1,
-              key_pos=0.15,
+              pose=0.25,
+              vel=0.05,
+              root_pose=0.2,
+              root_vel=0.05,
+              key_pos=0.1,
+              contact_force=0.3,
               # Regularization penalties (unchanged).
               action_rate=-0.001,
               # action_smooth=-1e-4,
@@ -55,6 +56,7 @@ def default_config() -> config_dict.ConfigDict:
           root_pose_scale=10.0,
           root_vel_scale=1.0,
           key_pos_scale=10.0,
+          contact_force_scale=5.0,
           # Coefficient for rotation error within root_pose / root_vel.
           root_pose_rot_coeff=0.1,
           root_vel_rot_coeff=0.1,
@@ -62,7 +64,7 @@ def default_config() -> config_dict.ConfigDict:
           finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.02,
+      pose_termination_dist=0.0,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
@@ -173,10 +175,10 @@ class Massage(mjx_env.MjxEnv):
     self._default_pose = jp.array(self._mj_model.qpos0[self._joint_qids])
 
     # Build per-joint kp/kd arrays for PD torque control.
-    # Wrist: indices 0..5 (left) and 15..20 (right).
-    # Fingers: indices 6..14 (left) and 21..29 (right).
-    wrist_ids = jp.array(list(range(0, 6)) + list(range(15, 21)))
-    finger_ids = jp.array(list(range(6, 15)) + list(range(21, 30)))
+    # Wrist: indices 0..4 (left) and 14..18 (right) — 5 DOF each.
+    # Fingers: indices 5..13 (left) and 19..27 (right) — 9 DOF each.
+    wrist_ids = jp.array(consts.WRIST_INDICES)
+    finger_ids = jp.array(consts.FINGER_INDICES)
     kp = jp.zeros(consts.NU)
     kd = jp.zeros(consts.NU)
     kp = kp.at[wrist_ids].set(self._config.wrist_kp)
@@ -231,12 +233,18 @@ class Massage(mjx_env.MjxEnv):
 
     # Contact force reference trajectory (optional).
     if "contact_force" in traj:
-      self._traj_contact_force = jp.array(traj["contact_force"])  # (T, 6, 3)
+      self._traj_contact_force = jp.array(traj["contact_force"])  # (T, 8, 3)
     else:
       # Fallback: zeros if data doesn't contain contact_force.
       self._traj_contact_force = jp.zeros(
-          (self._traj_len, len(consts.CONTACT_FORCE_SENSOR_NAMES), 3)
+          (self._traj_len, len(consts.CONTACT_FORCE_BODY_NAMES), 3)
       )
+
+    # Body IDs for cfrc_ext contact force reading (privileged obs + reward).
+    self._contact_body_ids = jp.array(
+        [self._mj_model.body(n).id for n in consts.CONTACT_FORCE_BODY_NAMES],
+        dtype=jp.int32,
+    )
 
     # Sensor addresses for contact force tracking (force sensors in sensordata).
     # Pre-compute flat indices for all 6×3=18 sensordata entries so we can
@@ -473,14 +481,14 @@ class Massage(mjx_env.MjxEnv):
     # DeepMimic-style observation: wrist = root (floating base),
     # fingers = joints.  Each hand is treated independently.
     #
-    # Joint layout (per hand, 15 DOF):
-    #   [0:3]   wrist slide XYZ  (root position)
-    #   [3:6]   wrist hinge RPY  (root rotation)
-    #   [6:15]  finger hinges     (joint angles)
-    # Left hand = indices 0..14, Right hand = indices 15..29.
+    # Joint layout (per hand, 14 DOF):
+    #   [0:2]   wrist slide XY   (root position, 2 DOF)
+    #   [2:5]   wrist hinge RPY  (root rotation, 3 DOF)
+    #   [5:14]  finger hinges    (joint angles, 9 DOF)
+    # Left hand = indices 0..13, Right hand = indices 14..27.
 
-    joint_pos = data.qpos[self._joint_qids]  # (30,)
-    joint_vel = data.qvel[self._joint_dqids]  # (30,)
+    joint_pos = data.qpos[self._joint_qids]  # (28,)
+    joint_vel = data.qvel[self._joint_dqids]  # (28,)
 
     # --- Encoder noise (applied to joint positions only) ---
     info["rng"], noise_rng = jax.random.split(info["rng"])
@@ -493,95 +501,113 @@ class Massage(mjx_env.MjxEnv):
     noisy_jpos = joint_pos
 
     # === Left hand (wrist = root) ===
-    # Wrist position: XYZ from slide joints (3,)
-    l_wrist_pos = noisy_jpos[0:3]
+    # Wrist position: XY from slide joints (2,)
+    l_wrist_pos = noisy_jpos[consts.L_WRIST_SLIDE]
     # Wrist rotation: sin/cos encoding of RPY hinge joints (6,)
-    l_wrist_rot_obs = jp.concatenate(
-        [jp.sin(noisy_jpos[3:6]), jp.cos(noisy_jpos[3:6])]
-    )
-    # Wrist velocity: linear (3,) + angular (3,)
-    l_wrist_lin_vel = joint_vel[0:3]
-    l_wrist_ang_vel = joint_vel[3:6]
+    l_wrist_rot_obs = jp.concatenate([
+        jp.sin(noisy_jpos[consts.L_WRIST_HINGE]),
+        jp.cos(noisy_jpos[consts.L_WRIST_HINGE]),
+    ])
+    # Wrist velocity: linear (2,) + angular (3,)
+    l_wrist_lin_vel = joint_vel[consts.L_WRIST_SLIDE]
+    l_wrist_ang_vel = joint_vel[consts.L_WRIST_HINGE]
     # Finger joint angles relative to default pose (9,)
-    l_finger_qpos = noisy_jpos[6:15] - self._default_pose[6:15]
+    l_finger_qpos = (
+        noisy_jpos[consts.L_FINGER_ALL]
+        - self._default_pose[consts.L_FINGER_ALL]
+    )
     # Finger joint velocities (9,)
-    l_finger_qvel = joint_vel[6:15]
+    l_finger_qvel = joint_vel[consts.L_FINGER_ALL]
 
     # === Right hand (wrist = root) ===
-    r_wrist_pos = noisy_jpos[15:18]
-    r_wrist_rot_obs = jp.concatenate(
-        [jp.sin(noisy_jpos[18:21]), jp.cos(noisy_jpos[18:21])]
+    r_wrist_pos = noisy_jpos[consts.R_WRIST_SLIDE]
+    r_wrist_rot_obs = jp.concatenate([
+        jp.sin(noisy_jpos[consts.R_WRIST_HINGE]),
+        jp.cos(noisy_jpos[consts.R_WRIST_HINGE]),
+    ])
+    r_wrist_lin_vel = joint_vel[consts.R_WRIST_SLIDE]
+    r_wrist_ang_vel = joint_vel[consts.R_WRIST_HINGE]
+    r_finger_qpos = (
+        noisy_jpos[consts.R_FINGER_ALL]
+        - self._default_pose[consts.R_FINGER_ALL]
     )
-    r_wrist_lin_vel = joint_vel[15:18]
-    r_wrist_ang_vel = joint_vel[18:21]
-    r_finger_qpos = noisy_jpos[21:30] - self._default_pose[21:30]
-    r_finger_qvel = joint_vel[21:30]
-
-    # === Phase encoding ===
-    phase_angle = 2.0 * jp.pi * traj_idx / self._traj_len
-    phase = jp.array([jp.sin(phase_angle), jp.cos(phase_angle)])
+    r_finger_qvel = joint_vel[consts.R_FINGER_ALL]
 
     # === Future target observations (DeepMimic G1 style, global_obs=True) ===
     # Per target step per hand:
-    #   wrist_pos: XY = target - current (relative), Z = target (absolute)
+    #   wrist_pos: target - current (relative)
     #   wrist_rot: absolute sin/cos encoding
     #   finger_qpos: absolute joint angle relative to default pose
+    # Plus: contact force reference for all 8 contact bodies.
     target_obs_list = []
     for step_offset in self._config.target_obs_steps:
       future_idx = (traj_idx + step_offset) % self._traj_len
       target_qpos_future = self._traj_qpos[future_idx]
 
-      # Left hand target (18,)
+      # Left hand target (16,): pos_diff(2) + rot_sincos(6) + finger(9) = 17
       left_target = jp.concatenate([
-          target_qpos_future[0:3] - joint_pos[0:3],  # wrist pos diff (3,)
-          jp.sin(target_qpos_future[3:6]),
-          jp.cos(target_qpos_future[3:6]),  # wrist rot absolute sin/cos (6,)
-          target_qpos_future[6:15]
-          - self._default_pose[6:15],  # finger qpos absolute (9,)
+          target_qpos_future[consts.L_WRIST_SLIDE]
+          - joint_pos[consts.L_WRIST_SLIDE],
+          jp.sin(target_qpos_future[consts.L_WRIST_HINGE]),
+          jp.cos(target_qpos_future[consts.L_WRIST_HINGE]),
+          target_qpos_future[consts.L_FINGER_ALL]
+          - self._default_pose[consts.L_FINGER_ALL],
       ])
 
-      # Right hand target (18,)
+      # Right hand target (17,)
       right_target = jp.concatenate([
-          target_qpos_future[15:18] - joint_pos[15:18],
-          jp.sin(target_qpos_future[18:21]),
-          jp.cos(target_qpos_future[18:21]),
-          target_qpos_future[21:30] - self._default_pose[21:30],
+          target_qpos_future[consts.R_WRIST_SLIDE]
+          - joint_pos[consts.R_WRIST_SLIDE],
+          jp.sin(target_qpos_future[consts.R_WRIST_HINGE]),
+          jp.cos(target_qpos_future[consts.R_WRIST_HINGE]),
+          target_qpos_future[consts.R_FINGER_ALL]
+          - self._default_pose[consts.R_FINGER_ALL],
       ])
+
+      # Contact force reference (24,): 8 bodies × 3.
+      cf_ref = self._traj_contact_force[future_idx].flatten()
 
       target_obs_list.append(
-          jp.concatenate([left_target, right_target])
-      )  # (36,)
+          jp.concatenate([left_target, right_target, cf_ref])
+      )
 
-    target_obs = jp.concatenate(target_obs_list)  # (36 * num_target_steps,)
+    target_obs = jp.concatenate(target_obs_list)
+
+    # === Actuator force (all joints, 28) ===
+    actuator_force = data.actuator_force
 
     # === Actor observation (state) ===
-    # Per hand (33): wrist_pos(3) + wrist_rot_sincos(6) + wrist_lin_vel(3)
+    # Per hand (31): wrist_pos(2) + wrist_rot_sincos(6) + wrist_lin_vel(2)
     #   + wrist_ang_vel(3) + finger_qpos(9) + finger_qvel(9)
-    # Total = 33*2 + 2 + 36*num_target_steps + 30
     state_obs = jp.concatenate([
-        # Left hand proprioception (33,)
+        # Left hand proprioception (31,)
         l_wrist_pos,
         l_wrist_rot_obs,
         l_wrist_lin_vel,
         l_wrist_ang_vel,
         l_finger_qpos,
         l_finger_qvel,
-        # Right hand proprioception (33,)
+        # Right hand proprioception (31,)
         r_wrist_pos,
         r_wrist_rot_obs,
         r_wrist_lin_vel,
         r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,
-        # Future targets (36 * num_target_steps,)
+        # Future targets: (17+17+24) * num_target_steps
         target_obs,
-        # Last action (30,)
+        # Last action (28,)
         info["last_act"],
+        # Actuator force (28,)
+        actuator_force,
     ])
 
     # === Privileged critic observation ===
+    # Additional: actual cfrc_ext for contact bodies (8 bodies × 3 = 24).
+    contact_cfrc = data.cfrc_ext[self._contact_body_ids, 3:]  # (8, 3)
     privileged_state = jp.concatenate([
-        state_obs,  # full actor observation
+        state_obs,
+        contact_cfrc.flatten(),
     ])
 
     return {
@@ -717,6 +743,7 @@ class Massage(mjx_env.MjxEnv):
         "root_pose": self._reward_root_pose(data, target_qpos),
         "root_vel": self._reward_root_vel(data, target_qvel),
         "key_pos": self._reward_key_pos(data, info),
+        "contact_force": self._reward_contact_force(data, info),
         "action_rate": self._reward_action_rate(action, info["last_act"]),
         # "action_smooth": self._reward_action_smooth(
         #     action, info["last_act"], info["last_last_act"]
@@ -727,7 +754,7 @@ class Massage(mjx_env.MjxEnv):
   # Reward functions (DeepMimic style). ----------------------------------------
   #
   # The massage task maps onto DeepMimic as follows:
-  #   DeepMimic root  -> wrist (6 DOF per hand: 3 slide + 3 hinge)
+  #   DeepMimic root  -> wrist (5 DOF per hand: 2 slide + 3 hinge)
   #   DeepMimic joints -> finger joints (9 per hand)
   #   DeepMimic key_pos -> fingertip cartesian positions (wrist-local frame)
   #
@@ -739,8 +766,7 @@ class Massage(mjx_env.MjxEnv):
     err = sum(w_j * (q_j - q_j^*)²)  over all finger joints.
     r = exp(-pose_scale * err)
     """
-    # Finger joints: indices 6..14 (left) and 21..29 (right).
-    finger_ids = jp.array(list(range(6, 15)) + list(range(21, 30)))
+    finger_ids = jp.array(consts.FINGER_INDICES)
     joint_pos = data.qpos[self._joint_qids]
     finger_pos = joint_pos[finger_ids]
     finger_tar = target_qpos[finger_ids]
@@ -755,7 +781,7 @@ class Massage(mjx_env.MjxEnv):
     err = sum(w_j * (dq_j - dq_j^*)²)  over all finger joints.
     r = exp(-vel_scale * err)
     """
-    finger_ids = jp.array(list(range(6, 15)) + list(range(21, 30)))
+    finger_ids = jp.array(consts.FINGER_INDICES)
     joint_vel = data.qvel[self._joint_dqids]
     finger_vel = joint_vel[finger_ids]
     finger_tar_vel = target_qvel[finger_ids]
@@ -770,18 +796,34 @@ class Massage(mjx_env.MjxEnv):
     """Wrist (root) pose tracking (DeepMimic root_pose_r).
 
     For each hand:
-      pos_err = ||p - p*||²   (3D wrist slide joints)
+      pos_err = ||p - p*||²   (2D wrist slide joints)
       rot_err = ||θ - θ*||²   (3D wrist hinge joints, radian diff)
     r = exp(-root_pose_scale * (pos_err + rot_coeff * rot_err))
     """
     joint_pos = data.qpos[self._joint_qids]
 
-    # Left wrist: slide [0:3], hinge [3:6]
-    l_pos_err = jp.sum(jp.square(joint_pos[0:3] - target_qpos[0:3]))
-    l_rot_err = jp.sum(jp.square(joint_pos[3:6] - target_qpos[3:6]))
-    # Right wrist: slide [15:18], hinge [18:21]
-    r_pos_err = jp.sum(jp.square(joint_pos[15:18] - target_qpos[15:18]))
-    r_rot_err = jp.sum(jp.square(joint_pos[18:21] - target_qpos[18:21]))
+    # Left wrist: slide [0:2], hinge [2:5]
+    l_pos_err = jp.sum(
+        jp.square(
+            joint_pos[consts.L_WRIST_SLIDE] - target_qpos[consts.L_WRIST_SLIDE]
+        )
+    )
+    l_rot_err = jp.sum(
+        jp.square(
+            joint_pos[consts.L_WRIST_HINGE] - target_qpos[consts.L_WRIST_HINGE]
+        )
+    )
+    # Right wrist: slide [14:16], hinge [16:19]
+    r_pos_err = jp.sum(
+        jp.square(
+            joint_pos[consts.R_WRIST_SLIDE] - target_qpos[consts.R_WRIST_SLIDE]
+        )
+    )
+    r_rot_err = jp.sum(
+        jp.square(
+            joint_pos[consts.R_WRIST_HINGE] - target_qpos[consts.R_WRIST_HINGE]
+        )
+    )
 
     pos_err = (l_pos_err + r_pos_err) * 20.0  # normalize for cm-scale range
     rot_err = l_rot_err + r_rot_err
@@ -802,11 +844,27 @@ class Massage(mjx_env.MjxEnv):
     joint_vel = data.qvel[self._joint_dqids]
 
     # Left wrist velocities
-    l_lin_err = jp.sum(jp.square(joint_vel[0:3] - target_qvel[0:3]))
-    l_ang_err = jp.sum(jp.square(joint_vel[3:6] - target_qvel[3:6]))
+    l_lin_err = jp.sum(
+        jp.square(
+            joint_vel[consts.L_WRIST_SLIDE] - target_qvel[consts.L_WRIST_SLIDE]
+        )
+    )
+    l_ang_err = jp.sum(
+        jp.square(
+            joint_vel[consts.L_WRIST_HINGE] - target_qvel[consts.L_WRIST_HINGE]
+        )
+    )
     # Right wrist velocities
-    r_lin_err = jp.sum(jp.square(joint_vel[15:18] - target_qvel[15:18]))
-    r_ang_err = jp.sum(jp.square(joint_vel[18:21] - target_qvel[18:21]))
+    r_lin_err = jp.sum(
+        jp.square(
+            joint_vel[consts.R_WRIST_SLIDE] - target_qvel[consts.R_WRIST_SLIDE]
+        )
+    )
+    r_ang_err = jp.sum(
+        jp.square(
+            joint_vel[consts.R_WRIST_HINGE] - target_qvel[consts.R_WRIST_HINGE]
+        )
+    )
 
     lin_err = l_lin_err + r_lin_err
     ang_err = l_ang_err + r_ang_err
@@ -831,6 +889,22 @@ class Massage(mjx_env.MjxEnv):
     key_pos_diff = cur_key_pos - ref_key_pos
     key_pos_err = jp.sum(jp.square(key_pos_diff))
     return jp.exp(-self._config.reward_config.key_pos_scale * key_pos_err)
+
+  def _reward_contact_force(
+      self, data: mjx.Data, info: dict[str, Any]
+  ) -> jax.Array:
+    """Contact force tracking: r = exp(-scale * ||cfrc_ext - ref||²).
+
+    Compares actual cfrc_ext linear force on contact bodies against the
+    reference force trajectory synthesised from replay data.
+    """
+    traj_idx = ((info["steps"] + info["step_offset"]) % self._traj_len).astype(
+        jp.int32
+    )
+    ref_force = self._traj_contact_force[traj_idx]  # (8, 3)
+    cur_force = data.cfrc_ext[self._contact_body_ids, 3:]  # (8, 3)
+    err = jp.sum(jp.square(cur_force - ref_force))
+    return jp.exp(-self._config.reward_config.contact_force_scale * err)
 
   def _reward_action_rate(
       self, act: jax.Array, last_act: jax.Array

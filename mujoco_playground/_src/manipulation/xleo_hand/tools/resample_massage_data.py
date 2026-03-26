@@ -19,10 +19,7 @@ import argparse
 import pickle
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
-
-from mujoco_playground._src.manipulation.xleo_hand import constants as consts
 
 
 def _project_root() -> Path:
@@ -112,181 +109,6 @@ def resample(data: dict, target_freq: float) -> dict:
   return result
 
 
-def _plot_2d_grouped(
-    arr: np.ndarray,
-    times: np.ndarray,
-    title: str,
-    ylabel: str,
-    groups: list[tuple[str, list[int], list[str]]],
-    save_path: str,
-) -> None:
-  """Plot a (T, D) array with semantic grouping.
-
-  Args:
-    groups: list of (group_title, column_indices, column_labels).
-  """
-  n_groups = len(groups)
-  fig, axes = plt.subplots(
-      n_groups, 1, figsize=(14, 3.2 * n_groups), squeeze=False, sharex=True
-  )
-  for g, (group_title, col_ids, col_labels) in enumerate(groups):
-    ax = axes[g, 0]
-    for idx, col in enumerate(col_ids):
-      ax.plot(times, arr[:, col], linewidth=1.5, label=col_labels[idx])
-    ax.set_ylabel(ylabel, fontsize=12)
-    ax.set_title(group_title, fontsize=14, loc="left", fontweight="bold")
-    ax.legend(fontsize=10, ncol=len(col_ids), loc="upper right")
-    ax.grid(True, alpha=0.3)
-    ax.tick_params(labelsize=10)
-  axes[-1, 0].set_xlabel("Time (s)", fontsize=12)
-  fig.suptitle(title, fontsize=16)
-  fig.tight_layout()
-  fig.savefig(save_path, dpi=150)
-  plt.close(fig)
-  print(f"  Saved plot: {save_path}")
-
-
-def _plot_3d(
-    arr: np.ndarray,
-    times: np.ndarray,
-    title: str,
-    body_names: list[str] | None,
-    dim_labels: list[str] | None,
-    save_path: str,
-) -> None:
-  """Plot a (T, N_bodies, D) array: one row per body, one column per dim."""
-  n_bodies = arr.shape[1]
-  n_dims = arr.shape[2]
-  if dim_labels is None:
-    dim_labels = [f"d{d}" for d in range(n_dims)]
-  colors = [
-      "tab:red",
-      "tab:green",
-      "tab:blue",
-      "tab:orange",
-      "tab:purple",
-      "tab:cyan",
-  ]
-  fig, axes = plt.subplots(
-      n_bodies,
-      n_dims,
-      figsize=(6 * n_dims, 2.5 * n_bodies),
-      squeeze=False,
-      sharex=True,
-  )
-  for b in range(n_bodies):
-    bname = body_names[b] if body_names else f"body {b}"
-    for d in range(n_dims):
-      ax = axes[b, d]
-      ax.plot(times, arr[:, b, d], linewidth=1.5, color=colors[d % len(colors)])
-      ax.grid(True, alpha=0.3)
-      ax.tick_params(labelsize=10)
-      # Row label on leftmost column
-      if d == 0:
-        ax.set_ylabel(bname, fontsize=12)
-      # Column header on first row
-      if b == 0:
-        ax.set_title(dim_labels[d], fontsize=14, fontweight="bold")
-  for d in range(n_dims):
-    axes[-1, d].set_xlabel("Time (s)", fontsize=12)
-  fig.suptitle(title, fontsize=16)
-  fig.tight_layout()
-  fig.savefig(save_path, dpi=150)
-  plt.close(fig)
-  print(f"  Saved plot: {save_path}")
-
-
-# Semantic grouping for qpos/qvel (derived from constants).
-# Each entry: (subplot_title, column_indices, column_labels)
-_JOINT_GROUPS = [
-    (title, [idx for idx, _ in joints], [lbl for _, lbl in joints])
-    for title, joints in consts.JOINT_GROUPS
-]
-
-# Body names for tracked_body_xpos (derived from constants).
-_TRACKED_BODY_NAMES = list(consts.TRACKED_BODY_NAMES)
-
-# Body names for key_body_xpos (derived from constants).
-_KEY_BODY_NAMES = list(consts.KEY_BODY_NAMES)
-
-
-def plot_all(data: dict, output_dir: Path) -> None:
-  """Plot all data fields and save figures to output_dir."""
-  freq = float(data["data_freq"])
-  T = data["qpos"].shape[0]
-  times = np.arange(T) / freq
-
-  print("Generating plots...")
-
-  # 1. qpos
-  _plot_2d_grouped(
-      data["qpos"],
-      times,
-      title=f"Joint Positions (qpos) — {T} frames @ {freq} Hz",
-      ylabel="Position (rad/m)",
-      groups=_JOINT_GROUPS,
-      save_path=str(output_dir / "qpos.png"),
-  )
-
-  # 2. qvel
-  _plot_2d_grouped(
-      data["qvel"],
-      times,
-      title=f"Joint Velocities (qvel) — {T} frames @ {freq} Hz",
-      ylabel="Velocity (rad·s⁻¹ / m·s⁻¹)",
-      groups=_JOINT_GROUPS,
-      save_path=str(output_dir / "qvel.png"),
-  )
-
-  # 3. tracked_body_xpos
-  if "tracked_body_xpos" in data:
-    tracked_names = data.get("tracked_body_names", _TRACKED_BODY_NAMES)
-    _plot_3d(
-        data["tracked_body_xpos"],
-        times,
-        title=f"Tracked Body Positions (xpos) — {T} frames @ {freq} Hz",
-        body_names=tracked_names,
-        dim_labels=["x", "y", "z"],
-        save_path=str(output_dir / "tracked_body_xpos.png"),
-    )
-
-  # 4. key_body_xpos
-  if "key_body_xpos" in data:
-    key_names = data.get("key_body_names", _KEY_BODY_NAMES)
-    _plot_3d(
-        data["key_body_xpos"],
-        times,
-        title=f"Key Body Positions (xpos) — {T} frames @ {freq} Hz",
-        body_names=key_names,
-        dim_labels=["x", "y", "z"],
-        save_path=str(output_dir / "key_body_xpos.png"),
-    )
-
-  # 5. contact_force
-  if "contact_force" in data:
-    # Try sensor names first (new format), then body names (legacy).
-    cf_names = data.get(
-        "contact_sensor_names", data.get("contact_body_names", None)
-    )
-    n_dims = (
-        data["contact_force"].shape[2] if data["contact_force"].ndim == 3 else 0
-    )
-    if n_dims == 3:
-      dim_labels = ["fx", "fy", "fz"]
-      src_label = "force sensor"
-    else:
-      dim_labels = ["fx", "fy", "fz", "tx", "ty", "tz"]
-      src_label = "cfrc_ext"
-    _plot_3d(
-        data["contact_force"],
-        times,
-        title=f"Contact Forces ({src_label}) — {T} frames @ {freq} Hz",
-        body_names=cf_names,
-        dim_labels=dim_labels,
-        save_path=str(output_dir / "contact_force.png"),
-    )
-
-
 def main():
   data_dir = _project_root() / "data"
   default_input = data_dir / "massage_data.pkl"
@@ -351,6 +173,7 @@ def main():
   if not args.no_plot:
     plot_dir = Path(output).parent / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
+    from mujoco_playground._src.manipulation.xleo_hand.tools.plot_utils import plot_all
     plot_all(data, plot_dir)
     print(f"All plots saved to {plot_dir}/")
 

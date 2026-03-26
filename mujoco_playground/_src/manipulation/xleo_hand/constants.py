@@ -158,19 +158,23 @@ FINGERTIP_BODY_NAMES = [
 # Body names for contact force tracking reward.
 CONTACT_FORCE_BODY_NAMES = [
     "L_WRIST",
-    "LINK_F1_L0",
-    "LINK_F2_L0",
+    "LINK_F0_L1",
+    "LINK_F1_L1",
+    "LINK_F2_L1",
     "R_WRIST",
-    "LINK_F1_R0",
-    "LINK_F2_R0",
+    "LINK_F0_R1",
+    "LINK_F1_R1",
+    "LINK_F2_R1",
 ]
 
 # Sensor names for contact force tracking (force sensors in XML).
 CONTACT_FORCE_SENSOR_NAMES = [
     "S_FORCE_L_WRIST",
+    "S_FORCE_F0_L0",
     "S_FORCE_F1_L0",
     "S_FORCE_F2_L0",
     "S_FORCE_R_WRIST",
+    "S_FORCE_F0_R0",
     "S_FORCE_F1_R0",
     "S_FORCE_F2_R0",
 ]
@@ -190,6 +194,25 @@ RIGHT_FINGER_INDICES = list(range(_n_lw + _n_lf + _n_rw, NQ))
 
 WRIST_INDICES = LEFT_WRIST_INDICES + RIGHT_WRIST_INDICES
 FINGER_INDICES = LEFT_FINGER_INDICES + RIGHT_FINGER_INDICES
+
+# Per-hand sub-group slices for observation / reward construction.
+# Left wrist: 2 slide (X, Y) + 3 hinge (ROLL, PITCH, YAW) = 5 DOF.
+_l_off = 0
+L_WRIST_SLIDE = slice(_l_off, _l_off + 2)
+L_WRIST_HINGE = slice(_l_off + 2, _l_off + _n_lw)
+L_WRIST_ALL = slice(_l_off, _l_off + _n_lw)
+L_FINGER_ALL = slice(_l_off + _n_lw, _l_off + _n_lw + _n_lf)
+
+# Right wrist: same layout, offset by left hand size.
+_r_off = _n_lw + _n_lf
+R_WRIST_SLIDE = slice(_r_off, _r_off + 2)
+R_WRIST_HINGE = slice(_r_off + 2, _r_off + _n_rw)
+R_WRIST_ALL = slice(_r_off, _r_off + _n_rw)
+R_FINGER_ALL = slice(_r_off + _n_rw, NQ)
+
+# Number of wrist slide / hinge DOFs (same for both hands).
+N_WRIST_SLIDE = 2
+N_WRIST_HINGE = 3
 
 
 def joint_index(name: str) -> int:
