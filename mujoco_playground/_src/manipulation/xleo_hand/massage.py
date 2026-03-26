@@ -39,12 +39,12 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=0.25,
+              pose=0.2,
               vel=0.05,
-              root_pose=0.2,
+              root_pose=0.1,
               root_vel=0.05,
               key_pos=0.1,
-              contact_force=0.3,
+              contact_force=0.5,
               # Regularization penalties (unchanged).
               action_rate=-0.001,
               # action_smooth=-1e-4,
@@ -64,7 +64,7 @@ def default_config() -> config_dict.ConfigDict:
           finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.0,
+      pose_termination_dist=0.02,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
@@ -78,7 +78,7 @@ def default_config() -> config_dict.ConfigDict:
       ),
       impl="jax",
       naconmax=30 * 16384,
-      njmax=160,
+      njmax=60,
   )
 
 
@@ -232,10 +232,12 @@ class Massage(mjx_env.MjxEnv):
     self._n_left_key = len([n for n in consts.KEY_BODY_NAMES if "_L" in n])
 
     # Contact force reference trajectory (optional).
-    if "contact_force" in traj:
-      self._traj_contact_force = jp.array(traj["contact_force"])  # (T, 8, 3)
+    if "tracked_contact_force" in traj:
+      self._traj_contact_force = jp.array(
+          traj["tracked_contact_force"]
+      )  # (T, 8, 3)
     else:
-      # Fallback: zeros if data doesn't contain contact_force.
+      # Fallback: zeros if data doesn't contain tracked_contact_force.
       self._traj_contact_force = jp.zeros(
           (self._traj_len, len(consts.CONTACT_FORCE_BODY_NAMES), 3)
       )

@@ -192,13 +192,15 @@ def plot_all(data: dict, output_dir: Path, prefix: str = "") -> None:
         colors=_xyz_colors,
     )
 
-  # 5. contact_force (synthesised)
-  if "contact_force" in data:
+  # 5. tracked_contact_force (synthesised)
+  if "tracked_contact_force" in data:
     cf_names = data.get(
         "contact_body_names", data.get("contact_sensor_names", None)
     )
     n_dims = (
-        data["contact_force"].shape[2] if data["contact_force"].ndim == 3 else 0
+        data["tracked_contact_force"].shape[2]
+        if data["tracked_contact_force"].ndim == 3
+        else 0
     )
     if n_dims == 3:
       dim_labels = ["fx", "fy", "fz"]
@@ -207,13 +209,13 @@ def plot_all(data: dict, output_dir: Path, prefix: str = "") -> None:
       dim_labels = ["fx", "fy", "fz", "tx", "ty", "tz"]
       src_label = "synthesised"
     plot_3d(
-        data["contact_force"],
+        data["tracked_contact_force"],
         times,
         title=f"Contact Forces ({src_label}) — {T} frames @ {freq} Hz",
         ylabel="Force (N)",
         body_names=cf_names,
         dim_labels=dim_labels,
-        save_path=str(output_dir / f"{prefix}contact_force.png"),
+        save_path=str(output_dir / f"{prefix}tracked_contact_force.png"),
         colors=_xyz_colors,
     )
 

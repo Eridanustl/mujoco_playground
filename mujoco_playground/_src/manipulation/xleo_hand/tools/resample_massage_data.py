@@ -95,9 +95,9 @@ def resample(data: dict, target_freq: float) -> dict:
         np.array(data["key_body_xpos"]), src_times, dst_times
     )
 
-  if "contact_force" in data:
-    result["contact_force"] = _resample_3d(
-        np.array(data["contact_force"]), src_times, dst_times
+  if "tracked_contact_force" in data:
+    result["tracked_contact_force"] = _resample_3d(
+        np.array(data["tracked_contact_force"]), src_times, dst_times
     )
 
   # Pass through string fields that don't need resampling.
@@ -111,7 +111,7 @@ def resample(data: dict, target_freq: float) -> dict:
 
 def main():
   data_dir = _project_root() / "data"
-  default_input = data_dir / "massage_data.pkl"
+  default_input = data_dir / "massage_replay_data.pkl"
   default_output = data_dir / "massage_traj.pkl"
   parser = argparse.ArgumentParser(
       description="Resample massage trajectory data to target frequency"
@@ -164,7 +164,7 @@ def main():
       "qvel",
       "tracked_body_xpos",
       "key_body_xpos",
-      "contact_force",
+      "tracked_contact_force",
   ]:
     if key in data:
       print(f"  {key}: {data[key].shape}")
@@ -174,7 +174,9 @@ def main():
     plot_dir = Path(output).parent / "plots"
     plot_dir.mkdir(parents=True, exist_ok=True)
     from mujoco_playground._src.manipulation.xleo_hand.tools.plot_utils import plot_all
-    plot_all(data, plot_dir)
+
+    freq = data["data_freq"]
+    plot_all(data, plot_dir, prefix=f"{int(freq)}hz_resampled_")
     print(f"All plots saved to {plot_dir}/")
 
 
