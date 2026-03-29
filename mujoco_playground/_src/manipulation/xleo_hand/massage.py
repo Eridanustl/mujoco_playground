@@ -39,15 +39,15 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=0.2,
-              vel=0.05,
+              pose=0.3,
+              vel=0.2,
               root_pose=0.1,
-              root_vel=0.05,
+              root_vel=0.1,
               key_pos=0.1,
-              contact_force=0.5,
+              contact_force=0.2,
               # Regularization penalties (unchanged).
-              action_rate=-0.001,
-              # action_smooth=-1e-4,
+              action_rate=-1e-3,
+              # action_smooth=-5e-3,
               # energy=-1e-6
           ),
           # DeepMimic exponential reward scales: r = exp(-scale * err).
@@ -914,11 +914,11 @@ class Massage(mjx_env.MjxEnv):
     """Action rate penalty (1st order): sum of squared first-order differences."""
     return jp.sum(jp.square(act - last_act))
 
-  # def _reward_action_smooth(
-  #     self, act: jax.Array, last_act: jax.Array, last_last_act: jax.Array
-  # ) -> jax.Array:
-  #   """Action smoothness penalty (2nd order): sum of squared second-order differences."""
-  #   return jp.sum(jp.square(act - 2 * last_act + last_last_act))
+  def _reward_action_smooth(
+      self, act: jax.Array, last_act: jax.Array, last_last_act: jax.Array
+  ) -> jax.Array:
+    """Action smoothness penalty (2nd order): sum of squared second-order differences."""
+    return jp.sum(jp.square(act - 2 * last_act + last_last_act))
 
   # def _reward_energy(self, data: mjx.Data) -> jax.Array:
   #   """Energy consumption penalty: sum(|qvel * actuator_force|)."""

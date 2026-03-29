@@ -40,9 +40,9 @@ WRIST_JOINTS = [
 FINGER_JOINTS = [
     # F0 (thumb) - separate amplitudes
     ("J_F0_L0", 0.3),
-    ("J_F0_L1", 0),
+    ("J_F0_L1", 0.4),
     ("J_F0_R0", 0.3),
-    ("J_F0_R1", 0),
+    ("J_F0_R1", 0.4),
     # F1
     ("J_F1_L0", 0.7),
     ("J_F1_R0", 0.7),

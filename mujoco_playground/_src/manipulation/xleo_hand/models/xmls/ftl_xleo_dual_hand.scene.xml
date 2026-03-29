@@ -26,7 +26,7 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-    <geom name="floor" pos="0 0 -0.25" size="0 0 0.01" type="plane" material="groundplane" contype="1" conaffinity="0" group="1"/>
+    <geom name="floor" pos="0 0 -0.25" size="0 0 0.01" type="plane" material="groundplane" contype="0" conaffinity="0" group="1"/>
     <body name="human">
       <geom name="simple_arm" type="capsule" size="0.045 0.13" pos="0.08 0 0.0" quat="0.991 0 0.131 0" class="convex_decomposition" group="1"/>
     </body>
@@ -42,7 +42,7 @@
     <exclude body1="human" body2="LINK_F2_L0"/>
     <exclude body1="human" body2="LINK_F2_L2"/>
     <exclude body1="human" body2="LINK_F0_R0"/>
-    <exclude body1="human" body2="LINK_F0_R2"/>
+    <exclude body1="human" body2="LINK_F0_R1"/>
     <exclude body1="human" body2="LINK_F1_R0"/>
     <exclude body1="human" body2="LINK_F1_R2"/>
     <exclude body1="human" body2="LINK_F2_R0"/>

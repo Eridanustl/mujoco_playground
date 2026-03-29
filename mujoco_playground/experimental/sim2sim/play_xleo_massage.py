@@ -86,6 +86,7 @@ class OnnxController:
       contact_body_ids: np.ndarray,
       wrist_action_scale: float = 0.05,
       finger_action_scale: float = 0.5,
+      action_ema_alpha: float = 0.3,
   ):
     self._output_names = ["continuous_actions"]
     self._policy = rt.InferenceSession(
@@ -129,6 +130,8 @@ class OnnxController:
     self._action_hi = (la_mean + 4.0 * la_std).astype(np.float32)
 
     self._last_action = np.zeros(consts.NU, dtype=np.float32)
+    self._ema_action = np.zeros(consts.NU, dtype=np.float32)
+    self._action_ema_alpha = action_ema_alpha  # 0→全平滑, 1→无滤波
     self._counter = 0
     self._n_substeps = n_substeps
     self._traj_idx = 0
@@ -264,8 +267,16 @@ class OnnxController:
     # Clip raw action to prevent feedback divergence.
     onnx_pred = np.clip(onnx_pred, self._action_lo, self._action_hi)
 
+    # EMA low-pass filter: smoothed = alpha * new + (1-alpha) * prev.
+    # alpha=1.0 means no filtering; smaller alpha = more smoothing.
+    self._ema_action = (
+        self._action_ema_alpha * onnx_pred
+        + (1.0 - self._action_ema_alpha) * self._ema_action
+    )
+    smoothed_action = self._ema_action
+
     # Apply per-joint action scales (must match training).
-    scaled_action = onnx_pred.copy()
+    scaled_action = smoothed_action.copy()
     scaled_action[self._wrist_ids] *= self._wrist_action_scale
     scaled_action[self._finger_ids] *= self._finger_action_scale
 

@@ -158,11 +158,11 @@ FINGERTIP_BODY_NAMES = [
 # Body names for contact force tracking reward.
 CONTACT_FORCE_BODY_NAMES = [
     "L_WRIST",
-    "LINK_F0_L1",
+    "LINK_F0_L2",
     "LINK_F1_L1",
     "LINK_F2_L1",
     "R_WRIST",
-    "LINK_F0_R1",
+    "LINK_F0_R2",
     "LINK_F1_R1",
     "LINK_F2_R1",
 ]
@@ -221,6 +221,7 @@ def joint_index(name: str) -> int:
 
 def _build_joint_groups():
   """自动构建关节分组，用于绘图。返回 [(group_name, [(index, short_label), ...]), ...]"""
+
   def _short(name):
     if "HAND_BASE" in name:
       return name.split("_")[-1]  # X, Y, ROLL, PITCH, YAW
@@ -231,10 +232,15 @@ def _build_joint_groups():
       ("Left", LEFT_WRIST_JOINT_NAMES, LEFT_FINGER_JOINT_NAMES, "L"),
       ("Right", RIGHT_WRIST_JOINT_NAMES, RIGHT_FINGER_JOINT_NAMES, "R"),
   ]:
-    groups.append((f"{side} Wrist", [(joint_index(n), _short(n)) for n in wrist_names]))
+    groups.append(
+        (f"{side} Wrist", [(joint_index(n), _short(n)) for n in wrist_names])
+    )
     for fid in ["F0", "F1", "F2"]:
       fnames = [n for n in finger_names if fid in n]
-      groups.append((f"{side} Finger {fid[1]}", [(joint_index(n), _short(n)) for n in fnames]))
+      groups.append((
+          f"{side} Finger {fid[1]}",
+          [(joint_index(n), _short(n)) for n in fnames],
+      ))
   return groups
 
 

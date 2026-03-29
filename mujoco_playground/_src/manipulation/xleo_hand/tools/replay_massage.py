@@ -48,10 +48,26 @@ class ReplayConfig:
   finger_kp: float = 5.0
   finger_kd: float = 0.1
   # Contact force synthesis: peak force per axis (N)
-  wrist_fx: float = 2.0
-  wrist_fy: float = 2.0
-  finger_fx: float = 0.8
-  finger_fy: float = 1.2
+  # -- Left wrist --
+  l_wrist_fx: float = 2.0
+  l_wrist_fy: float = 2.0
+  # -- Left fingers --
+  l_f0_fx: float = -1.2
+  l_f0_fy: float = 0.5
+  l_f1_fx: float = 0.8
+  l_f1_fy: float = 1.2
+  l_f2_fx: float = 0.8
+  l_f2_fy: float = 1.2
+  # -- Right wrist --
+  r_wrist_fx: float = 2.0
+  r_wrist_fy: float = 2.0
+  # -- Right fingers --
+  r_f0_fx: float = -1.2
+  r_f0_fy: float = -0.5
+  r_f1_fx: float = 0.8
+  r_f1_fy: float = -1.2
+  r_f2_fx: float = 0.8
+  r_f2_fy: float = -1.2
 
 
 # ---------------------------------------------------------------------------
@@ -200,13 +216,23 @@ def run(
   kp[consts.FINGER_INDICES] = cfg.finger_kp
   kd[consts.FINGER_INDICES] = cfg.finger_kd
 
-  # Per-body f_max (fx, fy): wrist vs finger.
-  f_max_xy = np.array([
-      [cfg.wrist_fx, cfg.wrist_fy]
-      if "WRIST" in n
-      else [cfg.finger_fx, cfg.finger_fy]
-      for n in consts.CONTACT_FORCE_BODY_NAMES
-  ])
+  # Per-body f_max (fx, fy): each body maps to its own config pair.
+  # CONTACT_FORCE_BODY_NAMES order:
+  #   L_WRIST, LINK_F0_L2, LINK_F1_L1, LINK_F2_L1,
+  #   R_WRIST, LINK_F0_R2, LINK_F1_R1, LINK_F2_R1
+  _body_force_map = {
+      "L_WRIST": (cfg.l_wrist_fx, cfg.l_wrist_fy),
+      "LINK_F0_L2": (cfg.l_f0_fx, cfg.l_f0_fy),
+      "LINK_F1_L1": (cfg.l_f1_fx, cfg.l_f1_fy),
+      "LINK_F2_L1": (cfg.l_f2_fx, cfg.l_f2_fy),
+      "R_WRIST": (cfg.r_wrist_fx, cfg.r_wrist_fy),
+      "LINK_F0_R2": (cfg.r_f0_fx, cfg.r_f0_fy),
+      "LINK_F1_R1": (cfg.r_f1_fx, cfg.r_f1_fy),
+      "LINK_F2_R1": (cfg.r_f2_fx, cfg.r_f2_fy),
+  }
+  f_max_xy = np.array(
+      [list(_body_force_map[n]) for n in consts.CONTACT_FORCE_BODY_NAMES]
+  )
 
   # Simulation loop parameters – timestep already set to 1/src_data_freq,
   # so each simulation step corresponds to exactly one data frame.
