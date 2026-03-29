@@ -237,7 +237,8 @@ def main():
   ppo_network = network_factory(obs_size, act_size)
 
   # 加载 checkpoint：返回 (normalizer_params, network_params)
-  params = brax_load(args.ckpt_path)
+  ckpt_path = os.path.abspath(args.ckpt_path)
+  params = brax_load(ckpt_path)
   params = (params[0], params[1])
   print("  checkpoint 加载完成 ✓")
 

@@ -124,8 +124,8 @@ class OnnxController:
 
     # Action clipping bounds derived from training normalizer statistics.
     act_dim = consts.NU
-    la_mean = obs_mean[-2 * act_dim:-act_dim]
-    la_std = obs_std[-2 * act_dim:-act_dim]
+    la_mean = obs_mean[-act_dim:]
+    la_std = obs_std[-act_dim:]
     self._action_lo = (la_mean - 4.0 * la_std).astype(np.float32)
     self._action_hi = (la_mean + 4.0 * la_std).astype(np.float32)
 
@@ -137,10 +137,10 @@ class OnnxController:
     self._traj_idx = 0
 
     # --- Recording buffers for post-playback plotting ---
-    self._rec_actual_qpos = []     # (N, 28) actual joint positions
-    self._rec_ref_qpos = []        # (N, 28) reference joint positions
-    self._rec_actual_cf = []       # (N, 8, 3) actual contact forces (cfrc_ext)
-    self._rec_ref_cf = []          # (N, 8, 3) reference contact forces
+    self._rec_actual_qpos = []  # (N, 28) actual joint positions
+    self._rec_ref_qpos = []  # (N, 28) reference joint positions
+    self._rec_actual_cf = []  # (N, 8, 3) actual contact forces (cfrc_ext)
+    self._rec_ref_cf = []  # (N, 8, 3) reference contact forces
     self._rec_actuator_force = []  # (N, 28) actuator forces
 
   def _get_obs(self, data: mujoco.MjData) -> np.ndarray:
@@ -160,8 +160,7 @@ class OnnxController:
     l_wrist_lin_vel = joint_vel[consts.L_WRIST_SLIDE]  # (2,)
     l_wrist_ang_vel = joint_vel[consts.L_WRIST_HINGE]  # (3,)
     l_finger_qpos = (
-        joint_pos[consts.L_FINGER_ALL]
-        - self._default_pose[consts.L_FINGER_ALL]
+        joint_pos[consts.L_FINGER_ALL] - self._default_pose[consts.L_FINGER_ALL]
     )  # (9,)
     l_finger_qvel = joint_vel[consts.L_FINGER_ALL]  # (9,)
 
@@ -174,8 +173,7 @@ class OnnxController:
     r_wrist_lin_vel = joint_vel[consts.R_WRIST_SLIDE]  # (2,)
     r_wrist_ang_vel = joint_vel[consts.R_WRIST_HINGE]  # (3,)
     r_finger_qpos = (
-        joint_pos[consts.R_FINGER_ALL]
-        - self._default_pose[consts.R_FINGER_ALL]
+        joint_pos[consts.R_FINGER_ALL] - self._default_pose[consts.R_FINGER_ALL]
     )  # (9,)
     r_finger_qvel = joint_vel[consts.R_FINGER_ALL]  # (9,)
 
@@ -187,8 +185,7 @@ class OnnxController:
 
       # Left target (17 dims)
       left_target = np.concatenate([
-          tgt[consts.L_WRIST_SLIDE]
-          - joint_pos[consts.L_WRIST_SLIDE],  # (2,)
+          tgt[consts.L_WRIST_SLIDE] - joint_pos[consts.L_WRIST_SLIDE],  # (2,)
           np.sin(tgt[consts.L_WRIST_HINGE]),
           np.cos(tgt[consts.L_WRIST_HINGE]),  # (6,)
           tgt[consts.L_FINGER_ALL]
@@ -197,8 +194,7 @@ class OnnxController:
 
       # Right target (17 dims)
       right_target = np.concatenate([
-          tgt[consts.R_WRIST_SLIDE]
-          - joint_pos[consts.R_WRIST_SLIDE],  # (2,)
+          tgt[consts.R_WRIST_SLIDE] - joint_pos[consts.R_WRIST_SLIDE],  # (2,)
           np.sin(tgt[consts.R_WRIST_HINGE]),
           np.cos(tgt[consts.R_WRIST_HINGE]),  # (6,)
           tgt[consts.R_FINGER_ALL]
@@ -214,10 +210,7 @@ class OnnxController:
 
     target_obs = np.concatenate(target_obs_list)  # (174,)
 
-    # === Actuator force (28 dims) ===
-    actuator_force = data.actuator_force.copy()  # (28,)
-
-    # === Assemble full 292-dim observation ===
+    # === Assemble full 264-dim observation ===
     obs = np.concatenate([
         # Left hand (31)
         l_wrist_pos,
@@ -237,8 +230,6 @@ class OnnxController:
         target_obs,
         # Last action (28)
         self._last_action,
-        # Actuator force (28)
-        actuator_force,
     ])
     return obs.astype(np.float32)
 
@@ -303,10 +294,10 @@ class OnnxController:
     if n == 0:
       return {}
     return {
-        "actual_qpos": np.array(self._rec_actual_qpos),       # (N, 28)
-        "ref_qpos": np.array(self._rec_ref_qpos),             # (N, 28)
-        "actual_cf": np.array(self._rec_actual_cf),            # (N, 8, 3)
-        "ref_cf": np.array(self._rec_ref_cf),                  # (N, 8, 3)
+        "actual_qpos": np.array(self._rec_actual_qpos),  # (N, 28)
+        "ref_qpos": np.array(self._rec_ref_qpos),  # (N, 28)
+        "actual_cf": np.array(self._rec_actual_cf),  # (N, 8, 3)
+        "ref_cf": np.array(self._rec_ref_cf),  # (N, 8, 3)
         "actuator_force": np.array(self._rec_actuator_force),  # (N, 28)
         "n_steps": n,
     }
@@ -315,6 +306,7 @@ class OnnxController:
 # ---------------------------------------------------------------------------
 # Plotting utilities
 # ---------------------------------------------------------------------------
+
 
 def _plot_qpos_tracking(
     ref: np.ndarray,
@@ -330,10 +322,14 @@ def _plot_qpos_tracking(
   for g, (group_title, joints) in enumerate(consts.JOINT_GROUPS):
     ax = axes[g, 0]
     for idx, label in joints:
-      line, = ax.plot(times, actual[:, idx], linewidth=1.5, label=f"{label}")
+      (line,) = ax.plot(times, actual[:, idx], linewidth=1.5, label=f"{label}")
       ax.plot(
-          times, ref[:, idx], linewidth=1.2, linestyle="--",
-          color=line.get_color(), alpha=0.6,
+          times,
+          ref[:, idx],
+          linewidth=1.2,
+          linestyle="--",
+          color=line.get_color(),
+          alpha=0.6,
       )
     ax.set_ylabel("Position (rad/m)", fontsize=11)
     ax.set_title(group_title, fontsize=13, loc="left", fontweight="bold")
@@ -342,7 +338,8 @@ def _plot_qpos_tracking(
   axes[-1, 0].set_xlabel("Time (s)", fontsize=12)
   fig.suptitle(
       "Joint Position Tracking (solid=actual, dashed=reference)",
-      fontsize=16, fontweight="bold",
+      fontsize=16,
+      fontweight="bold",
   )
   fig.tight_layout(rect=[0, 0, 1, 0.97])
   path = save_dir / "sim2sim_qpos_tracking.png"
@@ -370,12 +367,19 @@ def _plot_contact_force_tracking(
     ax = axes[b, 0]
     for d in range(3):
       ax.plot(
-          times, actual[:, b, d], linewidth=1.5,
-          color=colors[d], label=f"{dim_labels[d]}",
+          times,
+          actual[:, b, d],
+          linewidth=1.5,
+          color=colors[d],
+          label=f"{dim_labels[d]}",
       )
       ax.plot(
-          times, ref[:, b, d], linewidth=1.2, linestyle="--",
-          color=colors[d], alpha=0.6,
+          times,
+          ref[:, b, d],
+          linewidth=1.2,
+          linestyle="--",
+          color=colors[d],
+          alpha=0.6,
       )
     ax.set_ylabel("Force (N)", fontsize=11)
     ax.set_title(body_names[b], fontsize=13, loc="left", fontweight="bold")
@@ -384,7 +388,8 @@ def _plot_contact_force_tracking(
   axes[-1, 0].set_xlabel("Time (s)", fontsize=12)
   fig.suptitle(
       "Contact Force Tracking (solid=actual, dashed=reference)",
-      fontsize=16, fontweight="bold",
+      fontsize=16,
+      fontweight="bold",
   )
   fig.tight_layout(rect=[0, 0, 1, 0.97])
   path = save_dir / "sim2sim_contact_force_tracking.png"
@@ -432,13 +437,21 @@ def plot_sim2sim_results(recorded: dict, ctrl_dt: float, save_dir: Path):
   print(f"\nGenerating sim2sim plots ({n} steps, {times[-1]:.2f}s) ...")
 
   _plot_qpos_tracking(
-      recorded["ref_qpos"], recorded["actual_qpos"], times, save_dir,
+      recorded["ref_qpos"],
+      recorded["actual_qpos"],
+      times,
+      save_dir,
   )
   _plot_contact_force_tracking(
-      recorded["ref_cf"], recorded["actual_cf"], times, save_dir,
+      recorded["ref_cf"],
+      recorded["actual_cf"],
+      times,
+      save_dir,
   )
   _plot_actuator_force(
-      recorded["actuator_force"], times, save_dir,
+      recorded["actuator_force"],
+      times,
+      save_dir,
   )
   print(f"All sim2sim plots saved to {save_dir}/")
 
@@ -464,8 +477,8 @@ def load_callback(model=None, data=None):
   mujoco.mj_resetDataKeyframe(model, data, 0)
 
   # Timing must match training: ctrl_dt=0.02, sim_dt=0.005 → 50 Hz policy.
-  sim_dt = 0.005
-  n_substeps = 4  # ctrl_dt / sim_dt = 0.02 / 0.005 = 4
+  sim_dt = 0.001
+  n_substeps = 20  # ctrl_dt / sim_dt = 0.02 / 0.005 = 4
   model.opt.timestep = sim_dt
 
   # Joint IDs for qpos and qvel indexing.

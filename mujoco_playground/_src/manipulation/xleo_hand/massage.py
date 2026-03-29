@@ -33,7 +33,7 @@ def default_config() -> config_dict.ConfigDict:
       obs_noise=config_dict.create(
           level=1,
           scales=config_dict.create(
-              joint_pos=0.05,
+              joint_pos=0.01,
           ),
       ),
       reward_config=config_dict.create(
@@ -499,8 +499,8 @@ class Massage(mjx_env.MjxEnv):
         * self._config.obs_noise.level
         * self._config.obs_noise.scales.joint_pos
     )
-    # noisy_jpos = joint_pos + pos_noise
-    noisy_jpos = joint_pos
+    noisy_jpos = joint_pos + pos_noise
+    # noisy_jpos = joint_pos
 
     # === Left hand (wrist = root) ===
     # Wrist position: XY from slide joints (2,)
@@ -600,8 +600,6 @@ class Massage(mjx_env.MjxEnv):
         target_obs,
         # Last action (28,)
         info["last_act"],
-        # Actuator force (28,)
-        actuator_force,
     ])
 
     # === Privileged critic observation ===
@@ -609,6 +607,8 @@ class Massage(mjx_env.MjxEnv):
     contact_cfrc = data.cfrc_ext[self._contact_body_ids, 3:]  # (8, 3)
     privileged_state = jp.concatenate([
         state_obs,
+        # Actuator force (28,)
+        actuator_force,
         contact_cfrc.flatten(),
     ])
 
