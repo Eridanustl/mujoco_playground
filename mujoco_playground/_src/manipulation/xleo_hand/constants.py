@@ -183,32 +183,34 @@ CONTACT_FORCE_SENSOR_NAMES = [
 
 JOINT_NAME_TO_INDEX = {name: i for i, name in enumerate(JOINT_NAMES)}
 
-_n_lw = len(LEFT_WRIST_JOINT_NAMES)
-_n_lf = len(LEFT_FINGER_JOINT_NAMES)
-_n_rw = len(RIGHT_WRIST_JOINT_NAMES)
+# Joint index layout (28 total):
+#   [ 0.. 4] Left wrist   (5)  = 2 slide (X,Y) + 3 hinge (ROLL,PITCH,YAW)
+#   [ 5..13] Left fingers  (9)  = 3 fingers × 3 joints
+#   [14..18] Right wrist  (5)  = 2 slide (X,Y) + 3 hinge (ROLL,PITCH,YAW)
+#   [19..27] Right fingers (9)  = 3 fingers × 3 joints
 
-LEFT_WRIST_INDICES = list(range(0, _n_lw))
-LEFT_FINGER_INDICES = list(range(_n_lw, _n_lw + _n_lf))
-RIGHT_WRIST_INDICES = list(range(_n_lw + _n_lf, _n_lw + _n_lf + _n_rw))
-RIGHT_FINGER_INDICES = list(range(_n_lw + _n_lf + _n_rw, NQ))
+LEFT_WRIST_INDICES = list(range(0, 5))
+LEFT_FINGER_INDICES = list(range(5, 14))
+RIGHT_WRIST_INDICES = list(range(14, 19))
+RIGHT_FINGER_INDICES = list(range(19, 28))
 
 WRIST_INDICES = LEFT_WRIST_INDICES + RIGHT_WRIST_INDICES
 FINGER_INDICES = LEFT_FINGER_INDICES + RIGHT_FINGER_INDICES
 
-# Per-hand sub-group slices for observation / reward construction.
-# Left wrist: 2 slide (X, Y) + 3 hinge (ROLL, PITCH, YAW) = 5 DOF.
-_l_off = 0
-L_WRIST_SLIDE = slice(_l_off, _l_off + 2)
-L_WRIST_HINGE = slice(_l_off + 2, _l_off + _n_lw)
-L_WRIST_ALL = slice(_l_off, _l_off + _n_lw)
-L_FINGER_ALL = slice(_l_off + _n_lw, _l_off + _n_lw + _n_lf)
+# Wrist slide (linear) vs hinge (rotation) actuator indices.
+WRIST_SLIDE_INDICES = list(range(0, 2)) + list(range(14, 16))   # X, Y per hand
+WRIST_HINGE_INDICES = list(range(2, 5)) + list(range(16, 19))   # ROLL, PITCH, YAW per hand
 
-# Right wrist: same layout, offset by left hand size.
-_r_off = _n_lw + _n_lf
-R_WRIST_SLIDE = slice(_r_off, _r_off + 2)
-R_WRIST_HINGE = slice(_r_off + 2, _r_off + _n_rw)
-R_WRIST_ALL = slice(_r_off, _r_off + _n_rw)
-R_FINGER_ALL = slice(_r_off + _n_rw, NQ)
+# Per-hand sub-group slices for observation / reward construction.
+L_WRIST_SLIDE = slice(0, 2)    # X, Y
+L_WRIST_HINGE = slice(2, 5)    # ROLL, PITCH, YAW
+L_WRIST_ALL = slice(0, 5)
+L_FINGER_ALL = slice(5, 14)
+
+R_WRIST_SLIDE = slice(14, 16)  # X, Y
+R_WRIST_HINGE = slice(16, 19)  # ROLL, PITCH, YAW
+R_WRIST_ALL = slice(14, 19)
+R_FINGER_ALL = slice(19, 28)
 
 # Number of wrist slide / hinge DOFs (same for both hands).
 N_WRIST_SLIDE = 2

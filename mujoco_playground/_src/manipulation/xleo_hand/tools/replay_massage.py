@@ -43,8 +43,10 @@ def _project_root() -> Path:
 @dataclass
 class ReplayConfig:
   # PD gains
-  wrist_kp: float = 50.0
-  wrist_kd: float = 0.5
+  wrist_kp: float = 100.0
+  wrist_kd: float = 10.0
+  wrist_rot_kp: float = 50.0
+  wrist_rot_kd: float = 5.0
   finger_kp: float = 5.0
   finger_kd: float = 0.1
   # Contact force synthesis: peak force per axis (N)
@@ -208,11 +210,13 @@ def run(
   n_contact_bodies = len(consts.CONTACT_FORCE_BODY_NAMES)
   print(f"Contact bodies: {list(consts.CONTACT_FORCE_BODY_NAMES)}")
 
-  # Per-joint kp/kd: wrist vs finger gains.
+  # Per-joint kp/kd: wrist slide vs wrist hinge vs finger gains.
   kp = np.zeros(consts.NQ)
   kd = np.zeros(consts.NQ)
-  kp[consts.WRIST_INDICES] = cfg.wrist_kp
-  kd[consts.WRIST_INDICES] = cfg.wrist_kd
+  kp[consts.WRIST_SLIDE_INDICES] = cfg.wrist_kp
+  kd[consts.WRIST_SLIDE_INDICES] = cfg.wrist_kd
+  kp[consts.WRIST_HINGE_INDICES] = cfg.wrist_rot_kp
+  kd[consts.WRIST_HINGE_INDICES] = cfg.wrist_rot_kd
   kp[consts.FINGER_INDICES] = cfg.finger_kp
   kd[consts.FINGER_INDICES] = cfg.finger_kd
 

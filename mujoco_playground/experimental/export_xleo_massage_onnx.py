@@ -189,18 +189,16 @@ def main():
       type=str,
       default=None,
       help=(
-          "输出 ONNX 文件路径 (默认: "
-          "mujoco_playground/experimental/sim2sim/onnx/xleo_massage_policy.onnx)"
+          "输出 ONNX 文件路径 (默认: ckpt_path 上级 checkpoints 目录下的"
+          " xleo_massage_policy.onnx)"
       ),
   )
   args = parser.parse_args()
 
-  # 默认输出到 sim2sim/onnx/ 目录
+  # 默认输出到 checkpoint 所在的 checkpoints 目录
   if args.output is None:
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    args.output = os.path.join(
-        script_dir, "sim2sim", "onnx", "xleo_massage_policy.onnx"
-    )
+    ckpt_dir = os.path.dirname(os.path.abspath(args.ckpt_path))
+    args.output = os.path.join(ckpt_dir, "xleo_massage_policy.onnx")
   os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
   # ------------------------------------------------------------------

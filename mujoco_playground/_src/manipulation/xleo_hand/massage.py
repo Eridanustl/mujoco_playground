@@ -24,8 +24,10 @@ def default_config() -> config_dict.ConfigDict:
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
-      wrist_kp=10.0,
-      wrist_kd=0.5,
+      wrist_kp=100.0,
+      wrist_kd=10,
+      wrist_rot_kp=10.0,
+      wrist_rot_kd=1,
       finger_kp=5.0,
       finger_kd=0.1,
       # Future target observation steps (in env steps).
@@ -40,8 +42,8 @@ def default_config() -> config_dict.ConfigDict:
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
               pose=0.3,
-              vel=0.2,
-              root_pose=0.1,
+              vel=0.1,
+              root_pose=0.2,
               root_vel=0.1,
               key_pos=0.1,
               contact_force=0.2,
@@ -175,14 +177,18 @@ class Massage(mjx_env.MjxEnv):
     self._default_pose = jp.array(self._mj_model.qpos0[self._joint_qids])
 
     # Build per-joint kp/kd arrays for PD torque control.
-    # Wrist: indices 0..4 (left) and 14..18 (right) — 5 DOF each.
-    # Fingers: indices 5..13 (left) and 19..27 (right) — 9 DOF each.
-    wrist_ids = jp.array(consts.WRIST_INDICES)
+    # Wrist slide (linear): wrist_kp / wrist_kd
+    # Wrist hinge (rotation): wrist_rot_kp / wrist_rot_kd
+    # Fingers: finger_kp / finger_kd
+    wrist_slide_ids = jp.array(consts.WRIST_SLIDE_INDICES)
+    wrist_hinge_ids = jp.array(consts.WRIST_HINGE_INDICES)
     finger_ids = jp.array(consts.FINGER_INDICES)
     kp = jp.zeros(consts.NU)
     kd = jp.zeros(consts.NU)
-    kp = kp.at[wrist_ids].set(self._config.wrist_kp)
-    kd = kd.at[wrist_ids].set(self._config.wrist_kd)
+    kp = kp.at[wrist_slide_ids].set(self._config.wrist_kp)
+    kd = kd.at[wrist_slide_ids].set(self._config.wrist_kd)
+    kp = kp.at[wrist_hinge_ids].set(self._config.wrist_rot_kp)
+    kd = kd.at[wrist_hinge_ids].set(self._config.wrist_rot_kd)
     kp = kp.at[finger_ids].set(self._config.finger_kp)
     kd = kd.at[finger_ids].set(self._config.finger_kd)
     self._kp = kp
@@ -584,16 +590,16 @@ class Massage(mjx_env.MjxEnv):
     state_obs = jp.concatenate([
         # Left hand proprioception (31,)
         l_wrist_pos,
-        l_wrist_rot_obs,
-        l_wrist_lin_vel,
-        l_wrist_ang_vel,
+        # l_wrist_rot_obs,
+        # l_wrist_lin_vel,
+        # l_wrist_ang_vel,
         l_finger_qpos,
         l_finger_qvel,
         # Right hand proprioception (31,)
         r_wrist_pos,
-        r_wrist_rot_obs,
-        r_wrist_lin_vel,
-        r_wrist_ang_vel,
+        # r_wrist_rot_obs,
+        # r_wrist_lin_vel,
+        # r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,
         # Future targets: (17+17+24) * num_target_steps

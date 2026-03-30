@@ -38,6 +38,7 @@ After the viewer is closed, plots of reference vs actual trajectories
 (joint positions and contact forces) are saved to the plots/ directory.
 """
 
+import argparse
 import pickle
 from pathlib import Path
 
@@ -214,16 +215,16 @@ class OnnxController:
     obs = np.concatenate([
         # Left hand (31)
         l_wrist_pos,
-        l_wrist_rot_obs,
-        l_wrist_lin_vel,
-        l_wrist_ang_vel,
+        # l_wrist_rot_obs,
+        # l_wrist_lin_vel,
+        # l_wrist_ang_vel,
         l_finger_qpos,
         l_finger_qvel,
         # Right hand (31)
         r_wrist_pos,
-        r_wrist_rot_obs,
-        r_wrist_lin_vel,
-        r_wrist_ang_vel,
+        # r_wrist_rot_obs,
+        # r_wrist_lin_vel,
+        # r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,
         # Future targets (174)
@@ -549,6 +550,24 @@ def load_callback(model=None, data=None):
 
 
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser(
+      description="Deploy XleoMassage ONNX policy in C MuJoCo viewer"
+  )
+  parser.add_argument(
+      "--model_dir",
+      type=str,
+      default=None,
+      help=(
+          "包含 xleo_massage_policy.onnx 和 xleo_massage_policy_norm.npz 的目录"
+          " (默认: sim2sim/onnx/)"
+      ),
+  )
+  _args = parser.parse_args()
+
+  # Resolve ONNX directory: command-line arg or default.
+  if _args.model_dir is not None:
+    _ONNX_DIR = epath.Path(Path(_args.model_dir).resolve())
+
   viewer.launch(loader=load_callback)
 
   # After viewer closes, plot reference vs actual trajectories.
