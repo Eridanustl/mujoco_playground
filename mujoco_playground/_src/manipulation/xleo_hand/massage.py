@@ -24,10 +24,10 @@ def default_config() -> config_dict.ConfigDict:
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
-      wrist_kp=100.0,
-      wrist_kd=10,
+      wrist_kp=10.0,
+      wrist_kd=0.5,
       wrist_rot_kp=10.0,
-      wrist_rot_kd=1,
+      wrist_rot_kd=0.5,
       finger_kp=5.0,
       finger_kd=0.1,
       # Future target observation steps (in env steps).
@@ -49,7 +49,7 @@ def default_config() -> config_dict.ConfigDict:
               contact_force=0.2,
               # Regularization penalties (unchanged).
               action_rate=-1e-3,
-              # action_smooth=-5e-3,
+              # action_smooth=-10,
               # energy=-1e-6
           ),
           # DeepMimic exponential reward scales: r = exp(-scale * err).
@@ -66,7 +66,7 @@ def default_config() -> config_dict.ConfigDict:
           finger_err_w=[1.0] * 18,
       ),
       # Termination: max body cartesian position error (meters).
-      pose_termination_dist=0.02,
+      pose_termination_dist=0.03,
       terminate_on_nan=True,
       terminate_on_pose=True,
       pert_config=config_dict.create(
@@ -591,14 +591,14 @@ class Massage(mjx_env.MjxEnv):
         # Left hand proprioception (31,)
         l_wrist_pos,
         # l_wrist_rot_obs,
-        # l_wrist_lin_vel,
+        l_wrist_lin_vel,
         # l_wrist_ang_vel,
         l_finger_qpos,
         l_finger_qvel,
         # Right hand proprioception (31,)
         r_wrist_pos,
         # r_wrist_rot_obs,
-        # r_wrist_lin_vel,
+        r_wrist_lin_vel,
         # r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,
