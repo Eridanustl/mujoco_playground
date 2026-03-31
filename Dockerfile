@@ -31,4 +31,8 @@ RUN find /root/code/mujoco_playground -mindepth 1 -maxdepth 1 ! -name '.venv' -e
 ENV JAX_DEFAULT_MATMUL_PRECISION=highest
 ENV MUJOCO_GL=egl
 
+# Set timezone
+ENV TZ=Asia/Shanghai
+RUN ln -sf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 CMD ["bash"]

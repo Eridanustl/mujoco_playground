@@ -24,8 +24,8 @@ def default_config() -> config_dict.ConfigDict:
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
-      wrist_kp=10.0,
-      wrist_kd=0.5,
+      wrist_kp=50.0,
+      wrist_kd=5,
       wrist_rot_kp=10.0,
       wrist_rot_kd=0.5,
       finger_kp=5.0,
@@ -42,11 +42,11 @@ def default_config() -> config_dict.ConfigDict:
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
               pose=0.3,
-              vel=0.1,
-              root_pose=0.2,
-              root_vel=0.1,
+              vel=0.2,
+              root_pose=0.3,
+              # root_vel=0.1,
               key_pos=0.1,
-              contact_force=0.2,
+              contact_force=0.1,
               # Regularization penalties (unchanged).
               action_rate=-1e-3,
               # action_smooth=-10,
@@ -749,7 +749,7 @@ class Massage(mjx_env.MjxEnv):
         "pose": self._reward_pose(data, target_qpos),
         "vel": self._reward_vel(data, target_qvel),
         "root_pose": self._reward_root_pose(data, target_qpos),
-        "root_vel": self._reward_root_vel(data, target_qvel),
+        # "root_vel": self._reward_root_vel(data, target_qvel),
         "key_pos": self._reward_key_pos(data, info),
         "contact_force": self._reward_contact_force(data, info),
         "action_rate": self._reward_action_rate(action, info["last_act"]),

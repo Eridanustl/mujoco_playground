@@ -36,7 +36,7 @@
        Only wrist and finger middle links (L1/R1) participate in massage contact. -->
   <contact>
     <exclude body1="human" body2="LINK_F0_L0"/>
-    <exclude body1="human" body2="LINK_F0_L2"/>
+    <exclude body1="human" body2="LINK_F0_L1"/>
     <exclude body1="human" body2="LINK_F1_L0"/>
     <exclude body1="human" body2="LINK_F1_L2"/>
     <exclude body1="human" body2="LINK_F2_L0"/>

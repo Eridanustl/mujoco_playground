@@ -216,14 +216,14 @@ class OnnxController:
         # Left hand (31)
         l_wrist_pos,
         # l_wrist_rot_obs,
-        # l_wrist_lin_vel,
+        l_wrist_lin_vel,
         # l_wrist_ang_vel,
         l_finger_qpos,
         l_finger_qvel,
         # Right hand (31)
         r_wrist_pos,
         # r_wrist_rot_obs,
-        # r_wrist_lin_vel,
+        r_wrist_lin_vel,
         # r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,

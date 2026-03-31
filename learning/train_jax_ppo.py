@@ -336,12 +336,18 @@ def main(argv):
     # Convert to absolute path
     ckpt_path = epath.Path(_LOAD_CHECKPOINT_PATH.value).resolve()
     if ckpt_path.is_dir():
-      latest_ckpts = list(ckpt_path.glob("*"))
-      latest_ckpts = [ckpt for ckpt in latest_ckpts if ckpt.is_dir()]
-      latest_ckpts.sort(key=lambda x: int(x.name))
-      latest_ckpt = latest_ckpts[-1]
-      restore_checkpoint_path = latest_ckpt
-      print(f"Restoring from: {restore_checkpoint_path}")
+      # Check if the directory name itself is a checkpoint (numeric name).
+      try:
+        int(ckpt_path.name)
+        restore_checkpoint_path = ckpt_path
+        print(f"Restoring from specified checkpoint: {restore_checkpoint_path}")
+      except ValueError:
+        latest_ckpts = list(ckpt_path.glob("*"))
+        latest_ckpts = [ckpt for ckpt in latest_ckpts if ckpt.is_dir()]
+        latest_ckpts.sort(key=lambda x: int(x.name))
+        latest_ckpt = latest_ckpts[-1]
+        restore_checkpoint_path = latest_ckpt
+        print(f"Restoring from: {restore_checkpoint_path}")
     else:
       restore_checkpoint_path = ckpt_path
       print(f"Restoring from checkpoint: {restore_checkpoint_path}")
@@ -556,8 +562,9 @@ def main(argv):
     frames = infer_env.render(
         traj, height=480, width=640, scene_option=scene_option
     )
-    media.write_video(f"rollout{i}.mp4", frames, fps=fps)
-    print(f"Rollout video saved as 'rollout{i}.mp4'.")
+    video_path = str(logdir / f"rollout{i}.mp4")
+    media.write_video(video_path, frames, fps=fps)
+    print(f"Rollout video saved as '{video_path}'.")
 
 
 def run():

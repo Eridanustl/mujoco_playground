@@ -43,31 +43,31 @@ def _project_root() -> Path:
 @dataclass
 class ReplayConfig:
   # PD gains
-  wrist_kp: float = 100.0
-  wrist_kd: float = 10.0
-  wrist_rot_kp: float = 50.0
-  wrist_rot_kd: float = 5.0
+  wrist_kp: float = 50
+  wrist_kd: float = 5
+  wrist_rot_kp: float = 10.0
+  wrist_rot_kd: float = 0.5
   finger_kp: float = 5.0
   finger_kd: float = 0.1
   # Contact force synthesis: peak force per axis (N)
   # -- Left wrist --
-  l_wrist_fx: float = 2.0
-  l_wrist_fy: float = 2.0
+  l_wrist_fx: float = 0
+  l_wrist_fy: float = 1.5
   # -- Left fingers --
-  l_f0_fx: float = -1.2
+  l_f0_fx: float = -1.5
   l_f0_fy: float = 0.5
-  l_f1_fx: float = 0.8
-  l_f1_fy: float = 1.2
+  l_f1_fx: float = 1.5
+  l_f1_fy: float = 1.0
   l_f2_fx: float = 0.8
   l_f2_fy: float = 1.2
   # -- Right wrist --
-  r_wrist_fx: float = 2.0
-  r_wrist_fy: float = 2.0
+  r_wrist_fx: float = 0
+  r_wrist_fy: float = -1.5
   # -- Right fingers --
-  r_f0_fx: float = -1.2
+  r_f0_fx: float = -1.5
   r_f0_fy: float = -0.5
-  r_f1_fx: float = 0.8
-  r_f1_fy: float = -1.2
+  r_f1_fx: float = 1.5
+  r_f1_fy: float = -1.0
   r_f2_fx: float = 0.8
   r_f2_fy: float = -1.2
 
