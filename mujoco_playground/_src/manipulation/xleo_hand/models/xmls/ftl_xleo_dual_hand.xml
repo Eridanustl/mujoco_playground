@@ -62,9 +62,9 @@
     <!-- Left hand -->
     <body name="L_WRIST" pos="0 0.08 0.0">
       <inertial pos="0.0475989 -0.0039991 0.000164171" quat="0.000685685 0.650732 -0.096053 0.753208" mass="0.5904" diaginertia="0.000778977 0.000587765 0.000437887"/>
-      <joint name="J_LINK_HAND_BASE_L_X" type="slide" axis="1 0 0" range="-2 2" damping="2.0" armature="0.05"/>
-      <joint name="J_LINK_HAND_BASE_L_Y" type="slide" axis="0 1 0" range="-2 2" damping="2.0" armature="0.05"/>
-      <!-- <joint name="J_LINK_HAND_BASE_L_Z" type="slide" axis="0 0 1" range="-2 2" damping="2.0" armature="0.05"/> -->
+      <joint name="J_LINK_HAND_BASE_L_X" type="slide" axis="1 0 0" range="-1 1" damping="2.0" armature="0.05"/>
+      <joint name="J_LINK_HAND_BASE_L_Y" type="slide" axis="0 1 0" range="-1 1" damping="2.0" armature="0.05"/>
+      <!-- <joint name="J_LINK_HAND_BASE_L_Z" type="slide" axis="0 0 1" range="-1 1" damping="2.0" armature="0.05"/> -->
       <joint name="J_LINK_HAND_BASE_L_ROLL" type="hinge" axis="1 0 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_L_PITCH" type="hinge" axis="0 1 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_L_YAW" type="hinge" axis="0 0 1" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
@@ -107,7 +107,7 @@
             <joint name="J_F1_L2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F1_L2"/>
             <geom class="collision" mesh="LINK_F1_L2_convex"/>
-            <site name="site_F1_L2_tip" pos="0.04 0 0" size="0.001"/>
+            <site name="site_left_f1_tip" pos="0.05 0 0" type="sphere" size="0.001" rgba="1 0 0 1"/>
           </body>
         </body>
       </body>
@@ -127,7 +127,7 @@
             <joint name="J_F2_L2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F2_L2"/>
             <geom class="collision" mesh="LINK_F2_L2_convex"/>
-            <site name="site_F2_L2_tip" pos="0.04 0 0" size="0.001"/>
+            <site name="site_left_f2_tip" pos="0.05 0 0" type="sphere" size="0.001" rgba="1 0 0 1"/>
           </body>
         </body>
       </body>
@@ -136,9 +136,9 @@
     <!-- Right hand -->
     <body name="R_WRIST" pos="0 -0.08 0.0">
       <inertial pos="0.0475989 0.0039991 0.000164171" quat="0.0859322 0.650312 -0.0305688 0.754172" mass="0.5904" diaginertia="0.000777544 0.000589813 0.000437273"/>
-      <joint name="J_LINK_HAND_BASE_R_X" type="slide" axis="1 0 0" range="-2 2" damping="2.0" armature="0.05"/>
-      <joint name="J_LINK_HAND_BASE_R_Y" type="slide" axis="0 1 0" range="-2 2" damping="2.0" armature="0.05"/>
-      <!-- <joint name="J_LINK_HAND_BASE_R_Z" type="slide" axis="0 0 1" range="-2 2" damping="2.0" armature="0.05"/> -->
+      <joint name="J_LINK_HAND_BASE_R_X" type="slide" axis="1 0 0" range="-1 1" damping="2.0" armature="0.05"/>
+      <joint name="J_LINK_HAND_BASE_R_Y" type="slide" axis="0 1 0" range="-1 1" damping="2.0" armature="0.05"/>
+      <!-- <joint name="J_LINK_HAND_BASE_R_Z" type="slide" axis="0 0 1" range="-1 1" damping="2.0" armature="0.05"/> -->
       <joint name="J_LINK_HAND_BASE_R_ROLL" type="hinge" axis="1 0 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_R_PITCH" type="hinge" axis="0 1 0" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
       <joint name="J_LINK_HAND_BASE_R_YAW" type="hinge" axis="0 0 1" range="-0.5236 0.5236" damping="0.5" armature="0.005"/>
@@ -181,7 +181,7 @@
             <joint name="J_F1_R2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F1_L2"/>
             <geom class="collision" mesh="LINK_F1_L2_convex"/>
-            <site name="site_F1_R2_tip" pos="0.04 0 0" size="0.001"/>
+            <site name="site_right_f1_tip" pos="0.05 0 0" type="sphere" size="0.001" rgba="1 0 0 1"/>
           </body>
         </body>
       </body>
@@ -201,7 +201,7 @@
             <joint name="J_F2_R2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F2_L2"/>
             <geom class="collision" mesh="LINK_F2_L2_convex"/>
-            <site name="site_F2_R2_tip" pos="0.04 0 0" size="0.001"/>
+            <site name="site_right_f2_tip" pos="0.05 0 0" type="sphere" size="0.001" rgba="1 0 0 1"/>
           </body>
         </body>
       </body>
@@ -209,45 +209,69 @@
   </worldbody>
 
   <actuator>
-    <!-- Left hand wrist (motor/torque control) -->
     <motor name="M_LINK_HAND_BASE_L_X" joint="J_LINK_HAND_BASE_L_X" ctrlrange="-5 5"/>
     <motor name="M_LINK_HAND_BASE_L_Y" joint="J_LINK_HAND_BASE_L_Y" ctrlrange="-5 5"/>
-    <!-- <motor name="M_LINK_HAND_BASE_L_Z" joint="J_LINK_HAND_BASE_L_Z"/> -->
     <motor name="M_LINK_HAND_BASE_L_ROLL" joint="J_LINK_HAND_BASE_L_ROLL" ctrlrange="-5 5"/>
     <motor name="M_LINK_HAND_BASE_L_PITCH" joint="J_LINK_HAND_BASE_L_PITCH" ctrlrange="-5 5"/>
     <motor name="M_LINK_HAND_BASE_L_YAW" joint="J_LINK_HAND_BASE_L_YAW" ctrlrange="-5 5"/>
-    <!-- Left finger 0 -->
     <motor name="M_F0_L0" joint="J_F0_L0" ctrlrange="-1.5 1.5"/>
     <motor name="M_F0_L1" joint="J_F0_L1" ctrlrange="-1.5 1.5"/>
     <motor name="M_F0_L2" joint="J_F0_L2" ctrlrange="-1.5 1.5"/>
-    <!-- Left finger 1 -->
     <motor name="M_F1_L0" joint="J_F1_L0" ctrlrange="-1.5 1.5"/>
     <motor name="M_F1_L1" joint="J_F1_L1" ctrlrange="-1.5 1.5"/>
     <motor name="M_F1_L2" joint="J_F1_L2" ctrlrange="-1.5 1.5"/>
-    <!-- Left finger 2 -->
     <motor name="M_F2_L0" joint="J_F2_L0" ctrlrange="-1.5 1.5"/>
     <motor name="M_F2_L1" joint="J_F2_L1" ctrlrange="-1.5 1.5"/>
     <motor name="M_F2_L2" joint="J_F2_L2" ctrlrange="-1.5 1.5"/>
 
-    <!-- Right hand wrist (motor/torque control) -->
     <motor name="M_LINK_HAND_BASE_R_X" joint="J_LINK_HAND_BASE_R_X" ctrlrange="-5 5"/>
     <motor name="M_LINK_HAND_BASE_R_Y" joint="J_LINK_HAND_BASE_R_Y" ctrlrange="-5 5"/>
-    <!-- <motor name="M_LINK_HAND_BASE_R_Z" joint="J_LINK_HAND_BASE_R_Z"/> -->
     <motor name="M_LINK_HAND_BASE_R_ROLL" joint="J_LINK_HAND_BASE_R_ROLL" ctrlrange="-5 5"/>
     <motor name="M_LINK_HAND_BASE_R_PITCH" joint="J_LINK_HAND_BASE_R_PITCH" ctrlrange="-5 5"/>
     <motor name="M_LINK_HAND_BASE_R_YAW" joint="J_LINK_HAND_BASE_R_YAW" ctrlrange="-5 5"/>
-    <!-- Right finger 0 -->
     <motor name="M_F0_R0" joint="J_F0_R0" ctrlrange="-1.5 1.5"/>
     <motor name="M_F0_R1" joint="J_F0_R1" ctrlrange="-1.5 1.5"/>
     <motor name="M_F0_R2" joint="J_F0_R2" ctrlrange="-1.5 1.5"/>
-    <!-- Right finger 1 -->
     <motor name="M_F1_R0" joint="J_F1_R0" ctrlrange="-1.5 1.5"/>
     <motor name="M_F1_R1" joint="J_F1_R1" ctrlrange="-1.5 1.5"/>
     <motor name="M_F1_R2" joint="J_F1_R2" ctrlrange="-1.5 1.5"/>
-    <!-- Right finger 2 -->
     <motor name="M_F2_R0" joint="J_F2_R0" ctrlrange="-1.5 1.5"/>
     <motor name="M_F2_R1" joint="J_F2_R1" ctrlrange="-1.5 1.5"/>
     <motor name="M_F2_R2" joint="J_F2_R2" ctrlrange="-1.5 1.5"/>
+
+
+
+
+
+    <!-- <position name="M_LINK_HAND_BASE_L_X" joint="J_LINK_HAND_BASE_L_X" ctrlrange="-0.05 0.05" kp="100" kv="10"/>
+    <position name="M_LINK_HAND_BASE_L_Y" joint="J_LINK_HAND_BASE_L_Y" ctrlrange="-0.05 0.05" kp="100" kv="10"/>
+    <position name="M_LINK_HAND_BASE_L_ROLL" joint="J_LINK_HAND_BASE_L_ROLL" ctrlrange="-1.57 1.57" kp="50" kv="5"/>
+    <position name="M_LINK_HAND_BASE_L_PITCH" joint="J_LINK_HAND_BASE_L_PITCH" ctrlrange="-1.57 1.57" kp="50" kv="5"/>
+    <position name="M_LINK_HAND_BASE_L_YAW" joint="J_LINK_HAND_BASE_L_YAW" ctrlrange="-1.57 1.57" kp="50" kv="5"/>
+    <position name="M_F0_L0" joint="J_F0_L0" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F0_L1" joint="J_F0_L1" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F0_L2" joint="J_F0_L2" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F1_L0" joint="J_F1_L0" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F1_L1" joint="J_F1_L1" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F1_L2" joint="J_F1_L2" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F2_L0" joint="J_F2_L0" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F2_L1" joint="J_F2_L1" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F2_L2" joint="J_F2_L2" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+
+    <position name="M_LINK_HAND_BASE_R_X" joint="J_LINK_HAND_BASE_R_X" ctrlrange="-0.05 0.05" kp="100" kv="10"/>
+    <position name="M_LINK_HAND_BASE_R_Y" joint="J_LINK_HAND_BASE_R_Y" ctrlrange="-0.05 0.05" kp="100" kv="10"/>
+    <position name="M_LINK_HAND_BASE_R_ROLL" joint="J_LINK_HAND_BASE_R_ROLL" ctrlrange="-1.57 1.57" kp="50" kv="5"/>
+    <position name="M_LINK_HAND_BASE_R_PITCH" joint="J_LINK_HAND_BASE_R_PITCH" ctrlrange="-1.57 1.57" kp="50" kv="5"/>
+    <position name="M_LINK_HAND_BASE_R_YAW" joint="J_LINK_HAND_BASE_R_YAW" ctrlrange="-1.57 1.57" kp="50" kv="5"/>
+    <position name="M_F0_R0" joint="J_F0_R0" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F0_R1" joint="J_F0_R1" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F0_R2" joint="J_F0_R2" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F1_R0" joint="J_F1_R0" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F1_R1" joint="J_F1_R1" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F1_R2" joint="J_F1_R2" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F2_R0" joint="J_F2_R0" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F2_R1" joint="J_F2_R1" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/>
+    <position name="M_F2_R2" joint="J_F2_R2" ctrlrange="-1.5 1.5" kp="3" kv="0.1"/> -->
   </actuator>
 
   <sensor>
@@ -260,4 +284,10 @@
     <force name="S_FORCE_F1_R0" site="site_F1_R0"/>
     <force name="S_FORCE_F2_R0" site="site_F2_R0"/>
   </sensor>
+
+  <keyframe>
+    <key name="home" qpos="-0.     0.02   0.003  0.012 -0.041  0.     0.    -0.     1.007 -0.016
+ -0.     1.007 -0.016 -0.    -0.    -0.02  -0.003  0.012  0.041  0.
+  0.    -0.     1.007 -0.016 -0.     1.007 -0.016 -0.   " ctrl="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0"/>
+  </keyframe>
 </mujoco>
