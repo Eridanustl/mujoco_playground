@@ -24,8 +24,8 @@ def default_config() -> config_dict.ConfigDict:
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
-      wrist_kp=50.0,
-      wrist_kd=5,
+      wrist_kp=10.0,
+      wrist_kd=0.5,
       wrist_rot_kp=10.0,
       wrist_rot_kd=0.5,
       finger_kp=5.0,
@@ -41,10 +41,10 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=0.3,
-              vel=0.2,
-              root_pose=0.3,
-              # root_vel=0.1,
+              pose=0.5,
+              vel=0.1,
+              root_pose=0.1,
+              root_vel=0.1,
               key_pos=0.1,
               contact_force=0.1,
               # Regularization penalties (unchanged).
@@ -55,10 +55,10 @@ def default_config() -> config_dict.ConfigDict:
           # DeepMimic exponential reward scales: r = exp(-scale * err).
           pose_scale=0.25,
           vel_scale=0.01,
-          root_pose_scale=10.0,
+          root_pose_scale=5.0,
           root_vel_scale=1.0,
           key_pos_scale=10.0,
-          contact_force_scale=5.0,
+          contact_force_scale=1.0,
           # Coefficient for rotation error within root_pose / root_vel.
           root_pose_rot_coeff=0.1,
           root_vel_rot_coeff=0.1,
@@ -590,16 +590,16 @@ class Massage(mjx_env.MjxEnv):
     state_obs = jp.concatenate([
         # Left hand proprioception (31,)
         l_wrist_pos,
-        # l_wrist_rot_obs,
+        l_wrist_rot_obs,
         l_wrist_lin_vel,
-        # l_wrist_ang_vel,
+        l_wrist_ang_vel,
         l_finger_qpos,
         l_finger_qvel,
         # Right hand proprioception (31,)
         r_wrist_pos,
-        # r_wrist_rot_obs,
+        r_wrist_rot_obs,
         r_wrist_lin_vel,
-        # r_wrist_ang_vel,
+        r_wrist_ang_vel,
         r_finger_qpos,
         r_finger_qvel,
         # Future targets: (17+17+24) * num_target_steps
@@ -613,7 +613,6 @@ class Massage(mjx_env.MjxEnv):
     contact_cfrc = data.cfrc_ext[self._contact_body_ids, 3:]  # (8, 3)
     privileged_state = jp.concatenate([
         state_obs,
-        # Actuator force (28,)
         actuator_force,
         contact_cfrc.flatten(),
     ])
@@ -749,7 +748,7 @@ class Massage(mjx_env.MjxEnv):
         "pose": self._reward_pose(data, target_qpos),
         "vel": self._reward_vel(data, target_qvel),
         "root_pose": self._reward_root_pose(data, target_qpos),
-        # "root_vel": self._reward_root_vel(data, target_qvel),
+        "root_vel": self._reward_root_vel(data, target_qvel),
         "key_pos": self._reward_key_pos(data, info),
         "contact_force": self._reward_contact_force(data, info),
         "action_rate": self._reward_action_rate(action, info["last_act"]),

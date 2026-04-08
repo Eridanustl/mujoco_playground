@@ -15,9 +15,12 @@ echo "Uploading project [${PROJECT_NAME}] to user [${USER_NAME}]..."
 
 rsync -avz \
     -e 'ssh -p16000' \
+    --exclude '__pycache__/' \
+    --exclude '*.pyc' \
     --exclude 'logs/' \
     --exclude 'outputs/' \
     --exclude '.git/' \
     --exclude '.venv/' \
     --exclude '.vscode/' \
+    --exclude 'mujoco_playground/external_deps' \
     ./ ${USER_NAME}@10.41.206.215:~/code/${PROJECT_NAME}

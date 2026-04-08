@@ -107,6 +107,7 @@
             <joint name="J_F1_L2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F1_L2"/>
             <geom class="collision" mesh="LINK_F1_L2_convex"/>
+            <site name="site_F1_L2_tip" pos="0.04 0 0" size="0.001"/>
           </body>
         </body>
       </body>
@@ -126,6 +127,7 @@
             <joint name="J_F2_L2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F2_L2"/>
             <geom class="collision" mesh="LINK_F2_L2_convex"/>
+            <site name="site_F2_L2_tip" pos="0.04 0 0" size="0.001"/>
           </body>
         </body>
       </body>
@@ -179,6 +181,7 @@
             <joint name="J_F1_R2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F1_L2"/>
             <geom class="collision" mesh="LINK_F1_L2_convex"/>
+            <site name="site_F1_R2_tip" pos="0.04 0 0" size="0.001"/>
           </body>
         </body>
       </body>
@@ -198,6 +201,7 @@
             <joint name="J_F2_R2" class="finger_joint" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708"/>
             <geom class="visual" mesh="LINK_F2_L2"/>
             <geom class="collision" mesh="LINK_F2_L2_convex"/>
+            <site name="site_F2_R2_tip" pos="0.04 0 0" size="0.001"/>
           </body>
         </body>
       </body>

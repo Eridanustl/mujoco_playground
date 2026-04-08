@@ -1,0 +1,337 @@
+<mujoco model="xleo">
+  <option timestep="0.002" integrator="Euler">
+    <flag eulerdamp="disable" />
+  </option>
+  <compiler angle="radian" meshdir="../ftl_meshes/" />
+  <asset>
+    <mesh name="LINK_BASE" content_type="model/stl" file="LINK_BASE.STL" />
+    <mesh name="LINK_WAIST_M0" content_type="model/stl" file="LINK_WAIST_M0.STL" />
+    <mesh name="LINK_WAIST_M1" content_type="model/stl" file="LINK_WAIST_M1.STL" />
+    <mesh name="LINK_WAIST_M2" content_type="model/stl" file="LINK_WAIST_M2.STL" />
+    <mesh name="LINK_WAIST_M3" content_type="model/stl" file="LINK_WAIST_M3.STL" />
+    <mesh name="LINK_NECK_M0" content_type="model/stl" file="LINK_NECK_M0.STL" />
+    <mesh name="LINK_NECK_M1" content_type="model/stl" file="LINK_NECK_M1.STL" />
+    <mesh name="LINK_ARM_BASE_L" content_type="model/stl" file="LINK_ARM_BASE_L.STL" />
+    <mesh name="LINK_SHOULDER_L0" content_type="model/stl" file="LINK_SHOULDER_L0.STL" />
+    <mesh name="LINK_SHOULDER_L1" content_type="model/stl" file="LINK_SHOULDER_L1.STL" />
+    <mesh name="LINK_SHOULDER_L2" content_type="model/stl" file="LINK_SHOULDER_L2.STL" />
+    <mesh name="LINK_ELBOW_L0" content_type="model/stl" file="LINK_ELBOW_L0.STL" />
+    <mesh name="LINK_ELBOW_L1" content_type="model/stl" file="LINK_ELBOW_L1.STL" />
+    <mesh name="LINK_WRIST_L0" content_type="model/stl" file="LINK_WRIST_L0.STL" />
+    <mesh name="LINK_WRIST_L1" content_type="model/stl" file="LINK_WRIST_L1.STL" />
+    <mesh name="LINK_HAND_BASE_L" content_type="model/stl" file="LINK_HAND_BASE_L.STL" />
+    <mesh name="LINK_F0_L0" content_type="model/stl" file="LINK_F0_L0.STL" />
+    <mesh name="LINK_F0_L1" content_type="model/stl" file="LINK_F0_L1.STL" />
+    <mesh name="LINK_F0_L2" content_type="model/stl" file="LINK_F0_L2.STL" />
+    <mesh name="LINK_F1_L0" content_type="model/stl" file="LINK_F1_L0.STL" />
+    <mesh name="LINK_F1_L1" content_type="model/stl" file="LINK_F1_L1.STL" />
+    <mesh name="LINK_F1_L2" content_type="model/stl" file="LINK_F1_L2.STL" />
+    <mesh name="LINK_F2_L0" content_type="model/stl" file="LINK_F2_L0.STL" />
+    <mesh name="LINK_F2_L1" content_type="model/stl" file="LINK_F2_L1.STL" />
+    <mesh name="LINK_F2_L2" content_type="model/stl" file="LINK_F2_L2.STL" />
+    <mesh name="LINK_ARM_BASE_R" content_type="model/stl" file="LINK_ARM_BASE_R.STL" />
+    <mesh name="LINK_SHOULDER_R0" content_type="model/stl" file="LINK_SHOULDER_R0.STL" />
+    <mesh name="LINK_SHOULDER_R1" content_type="model/stl" file="LINK_SHOULDER_R1.STL" />
+    <mesh name="LINK_SHOULDER_R2" content_type="model/stl" file="LINK_SHOULDER_R2.STL" />
+    <mesh name="LINK_ELBOW_R0" content_type="model/stl" file="LINK_ELBOW_R0.STL" />
+    <mesh name="LINK_ELBOW_R1" content_type="model/stl" file="LINK_ELBOW_R1.STL" />
+    <mesh name="LINK_WRIST_R0" content_type="model/stl" file="LINK_WRIST_R0.STL" />
+    <mesh name="LINK_WRIST_R1" content_type="model/stl" file="LINK_WRIST_R1.STL" />
+    <mesh name="LINK_HAND_BASE_R" content_type="model/stl" file="LINK_HAND_BASE_R.STL" />
+  </asset>
+  <worldbody>
+    <body name="BASE_X">
+      <inertial pos="0 0 0" mass="0.01" diaginertia="1e-06 1e-06 1e-06" />
+      <joint name="J_BASE_X" pos="0 0 0" axis="1 0 0" type="slide" range="-10 10" actuatorfrcrange="-5000 5000" />
+      <body name="BASE_Y">
+        <inertial pos="0 0 0" mass="0.01" diaginertia="1e-06 1e-06 1e-06" />
+        <joint name="J_BASE_Y" pos="0 0 0" axis="0 1 0" type="slide" range="-10 10" actuatorfrcrange="-5000 5000" />
+        <body name="LINK_BASE">
+          <inertial pos="-0.002781 0.002837 0.117808" quat="0.496408 0.469412 -0.533214 0.498912" mass="44.7428" diaginertia="1.51616 0.954692 0.951464" />
+          <joint name="J_BASE_YAW" pos="0 0 0" axis="0 0 1" range="-1000000 1000000" actuatorfrcrange="-5000 5000" />
+          <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_BASE" />
+          <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_BASE" />
+          <body name="LINK_WAIST_M0" pos="0 0 0.18405">
+            <inertial pos="-0.084036 0.000233 0.526509" quat="0.68512 0.0263038 0.0247957 0.727533" mass="21.9014" diaginertia="3.51598 3.513 0.122231" />
+            <joint name="J_WAIST_M0" pos="0 0 0" axis="0 0 1" range="-3.0543 3.0543" actuatorfrcrange="-264 264" />
+            <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M0" />
+            <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M0" />
+            <body name="LINK_WAIST_M1" pos="-0.075 0 0.9163">
+              <inertial pos="0.094041 6.8e-05 -0.035684" quat="0.547716 0.446377 0.447336 0.548311" mass="4.7005" diaginertia="0.033158 0.0296219 0.02597" />
+              <joint name="J_WAIST_M1" pos="0 0 0" axis="0 0 1" type="slide" range="-0.6421 0.1159" actuatorfrcrange="-12999.6 12999.6" />
+              <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M1" />
+              <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M1" />
+              <body name="LINK_WAIST_M2" pos="0.184 0 0.0446" quat="0.707105 -0.707108 0 0">
+                <inertial pos="-0.002486 0.000928 8.6e-05" quat="0.675366 0.000999815 -0.00204475 0.73748" mass="2.38867" diaginertia="0.00968528 0.00927384 0.00371688" />
+                <joint name="J_WAIST_M2" pos="0 0 0" axis="0 0 1" range="0 1.5708" actuatorfrcrange="-396 396" />
+                <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M2" />
+                <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M2" />
+                <body name="LINK_WAIST_M3" quat="0.499998 -0.5 0.500002 -0.5">
+                  <inertial pos="0.119089 0.0551504 -0.0118793" quat="-0.0542948 0.41195 -0.343076 0.842406" mass="12.0162" diaginertia="0.358356 0.315153 0.1389" />
+                  <joint name="J_WAIST_M3" pos="0 0 0" axis="0 0 1" range="-0.3491 0.3491" actuatorfrcrange="-315.29 315.29" />
+                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M3" />
+                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_WAIST_M3" />
+                  <geom pos="0.2575 -0.108 -0.0072" quat="-2.59734e-06 0.707108 2.59735e-06 0.707105" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.823529 0.988235 1 1" mesh="LINK_ARM_BASE_L" />
+                  <geom pos="0.2575 -0.108 -0.0072" quat="-2.59734e-06 0.707108 2.59735e-06 0.707105" type="mesh" rgba="0.823529 0.988235 1 1" mesh="LINK_ARM_BASE_L" />
+                  <geom pos="0.2575 0.108 -0.0072" quat="-2.59734e-06 0.707108 2.59735e-06 0.707105" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.823529 0.988235 1 1" mesh="LINK_ARM_BASE_R" />
+                  <geom pos="0.2575 0.108 -0.0072" quat="-2.59734e-06 0.707108 2.59735e-06 0.707105" type="mesh" rgba="0.823529 0.988235 1 1" mesh="LINK_ARM_BASE_R" />
+                  <body name="LINK_NECK_M0" pos="0.3255 0 0.0053" quat="-2.59734e-06 0.707105 2.59735e-06 0.707108">
+                    <inertial pos="0 -0.004338 0.034098" quat="0.92388 -0.382683 0 0" mass="0.259106" diaginertia="0.00016 0.000126 0.000118" />
+                    <joint name="J_NECK_M0" pos="0 0 0" axis="0 0 1" range="-1.2479 1.2479" actuatorfrcrange="-1.5 1.5" />
+                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_NECK_M0" />
+                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_NECK_M0" />
+                    <body name="LINK_NECK_M1" pos="0 0 0.04" quat="0.707105 -0.707108 0 0">
+                      <inertial pos="0.004227 -0.097167 0.000159" quat="0.250024 0.384241 0.662471 0.592435" mass="0.44618" diaginertia="0.00101694 0.000911386 0.000877671" />
+                      <joint name="J_NECK_M1" pos="0 0 0" axis="0 0 1" range="-0.0524 1.117" actuatorfrcrange="-1.5 1.5" />
+                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_NECK_M1" />
+                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_NECK_M1" />
+                    </body>
+                  </body>
+                  <body name="LINK_SHOULDER_L0" pos="0.257501 -0.195 -0.0072" quat="-2.59734e-06 2.59735e-06 -0.707108 0.707105">
+                    <inertial pos="-7.2e-05 -0.000567 -0.033456" quat="0.999857 -0.0169224 0 0" mass="0.182858" diaginertia="0.000196 0.000176135 5.78646e-05" />
+                    <joint name="J_SHOULDER_L0" pos="0 0 0" axis="0 0 1" range="-3.1416 1.0472" actuatorfrcrange="-138 138" />
+                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_SHOULDER_L0" />
+                    <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_SHOULDER_L0" />
+                    <body name="LINK_SHOULDER_L1" quat="0.707105 0.707108 0 0">
+                      <inertial pos="0.049216 0.040357 -0.003963" quat="0.132663 0.663789 -0.166222 0.717046" mass="1.0713" diaginertia="0.00197207 0.00183072 0.00109821" />
+                      <joint name="J_SHOULDER_L1" pos="0 0 0" axis="0 0 1" range="-0.5236 2.2689" actuatorfrcrange="-138 138" />
+                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_L1" />
+                      <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_L1" />
+                      <body name="LINK_SHOULDER_L2" pos="0.1245 0.04 0" quat="0.707105 0 0.707108 0">
+                        <inertial pos="0.000292 0.007585 0.099618" quat="0.994991 0.0238276 -0.0193852 0.0951328" mass="1.49237" diaginertia="0.0068509 0.00664805 0.00119105" />
+                        <joint name="J_SHOULDER_L2" pos="0 0 0" axis="0 0 1" range="-2.3562 2.3562" actuatorfrcrange="-69 69" />
+                        <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_L2" />
+                        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_L2" />
+                        <body name="LINK_ELBOW_L0" pos="0 0 0.1955" quat="0.707105 0 -0.707108 0">
+                          <inertial pos="0.013153 -1.1e-05 0.000185" quat="0.5 0.5 0.5 0.5" mass="0.061802" diaginertia="3.3e-05 1.9e-05 1.8e-05" />
+                          <joint name="J_ELBOW_L0" pos="0 0 0" axis="0 0 1" range="-2.2689 0" actuatorfrcrange="-69 69" />
+                          <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_ELBOW_L0" />
+                          <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_ELBOW_L0" />
+                          <body name="LINK_ELBOW_L1" quat="0.707105 0 0.707108 0">
+                            <inertial pos="-4e-05 -1.3e-05 0.154649" quat="0.999777 -9.96503e-05 0.0211126 0.000127775" mass="1.29819" diaginertia="0.005799 0.005631 0.000749" />
+                            <joint name="J_ELBOW_L1" pos="0 0 0" axis="0 0 1" range="-0.7854 3.927" actuatorfrcrange="-55 55" />
+                            <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_ELBOW_L1" />
+                            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_ELBOW_L1" />
+                            <body name="LINK_WRIST_L0" pos="0 0 0.28" quat="0.499998 -0.5 -0.5 -0.500002">
+                              <inertial pos="0.003246 -0.00028 -0.000451" quat="0.5 0.5 0.5 0.5" mass="0.063741" diaginertia="2.5e-05 2.5e-05 2.4e-05" />
+                              <joint name="J_WRIST_L0" pos="0 0 0" axis="0 0 1" range="-0.8727 0.8727" actuatorfrcrange="-43 43" />
+                              <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="1 1 1 1" mesh="LINK_WRIST_L0" />
+                              <geom type="mesh" rgba="1 1 1 1" mesh="LINK_WRIST_L0" />
+                              <body name="LINK_WRIST_L1" quat="0.707105 0.707108 0 0">
+                                <inertial pos="0.0373644 -0.00895166 0.0444219" quat="0.66156 0.328425 0.187909 0.64743" mass="0.706738" diaginertia="0.00104128 0.000967628 0.000740387" />
+                                <joint name="J_WRIST_L1" pos="0 0 0" axis="0 0 1" range="-1.3963 1.3963" actuatorfrcrange="-43 43" />
+                                <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.898039 0.917647 0.929412 0.25" mesh="LINK_WRIST_L1" />
+                                <geom type="mesh" rgba="0.898039 0.917647 0.929412 0.25" mesh="LINK_WRIST_L1" />
+                                <geom pos="0.0555 0 0" quat="0.707105 0.707108 0 0" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_HAND_BASE_L" />
+                                <geom pos="0.0555 0 0" quat="0.707105 0.707108 0 0" type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_HAND_BASE_L" />
+                                <body name="LINK_F0_L0" pos="0.076999 -0.0208651 0.0224999" quat="-2.59734e-06 0.707105 0 0.707108">
+                                  <inertial pos="-3.617e-05 0 -0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06" />
+                                  <joint name="J_F0_L0" pos="0 0 0" axis="0 0 1" range="0 1.9199" actuatorfrcrange="-3 3" />
+                                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L0" />
+                                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L0" />
+                                  <body name="LINK_F0_L1" quat="0.707105 0.707108 0 0">
+                                    <inertial pos="0.0375062 -8.894e-05 0.0001648" quat="0.511508 0.483488 0.515615 0.48861" mass="0.0688816" diaginertia="2.05529e-05 2.00084e-05 6.49879e-06" />
+                                    <joint name="J_F0_L1" pos="0 0 0" axis="0 0 1" range="-0.1745 0.7854" actuatorfrcrange="-3 3" />
+                                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L1" />
+                                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L1" />
+                                    <body name="LINK_F0_L2" pos="0.05425 0 0">
+                                      <inertial pos="0.0208975 -0.00213483 -0.00106078" quat="0.479898 0.503774 0.561192 0.448301" mass="0.0310237" diaginertia="7.08669e-06 6.49441e-06 2.3189e-06" />
+                                      <joint name="J_F0_L2" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708" actuatorfrcrange="-1.5 1.5" />
+                                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L2" />
+                                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L2" />
+                                    </body>
+                                  </body>
+                                </body>
+                                <body name="LINK_F1_L0" pos="0.15782 -0.00574008 0.0225" quat="-3.67321e-06 1 0 0">
+                                  <inertial pos="3.617e-05 0 0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06" />
+                                  <joint name="J_F1_L0" pos="0 0 0" axis="0 0 1" range="-0.4363 1.8326" actuatorfrcrange="-3 3" />
+                                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L0" />
+                                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L0" />
+                                  <body name="LINK_F1_L1" quat="0.707105 -0.707108 0 0">
+                                    <inertial pos="0.0324375 -0.00016602 -0.0001648" quat="0.492035 0.508606 0.488885 0.51011" mass="0.0702732" diaginertia="1.85812e-05 1.77891e-05 6.95973e-06" />
+                                    <joint name="J_F1_L1" pos="0 0 0" axis="0 0 1" range="-0.4363 0.4363" actuatorfrcrange="-3 3" />
+                                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L1" />
+                                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L1" />
+                                    <body name="LINK_F1_L2" pos="0.04825 0 0" quat="0.707105 0.707108 0 0">
+                                      <inertial pos="0.0208065 -0.00102362 -0.00132199" quat="0.466616 0.545959 0.523663 0.458231" mass="0.0257518" diaginertia="6.36399e-06 5.8103e-06 1.96571e-06" />
+                                      <joint name="J_F1_L2" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708" actuatorfrcrange="-1.5 1.5" />
+                                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L2" />
+                                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L2" />
+                                    </body>
+                                  </body>
+                                </body>
+                                <body name="LINK_F2_L0" pos="0.15782 -0.00573992 -0.0225" quat="-3.67321e-06 1 0 0">
+                                  <inertial pos="3.617e-05 0 0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06" />
+                                  <joint name="J_F2_L0" pos="0 0 0" axis="0 0 1" range="-0.4363 1.8326" actuatorfrcrange="-3 3" />
+                                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L0" />
+                                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L0" />
+                                  <body name="LINK_F2_L1" quat="0.707105 -0.707108 0 0">
+                                    <inertial pos="0.0324375 -0.00016602 -0.0001648" quat="0.492035 0.508606 0.488885 0.51011" mass="0.0702732" diaginertia="1.85812e-05 1.77891e-05 6.95973e-06" />
+                                    <joint name="J_F2_L1" pos="0 0 0" axis="0 0 1" range="-0.4363 0.4363" actuatorfrcrange="-3 3" />
+                                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L1" />
+                                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L1" />
+                                    <body name="LINK_F2_L2" pos="0.04825 0 0" quat="0.707105 0.707108 0 0">
+                                      <inertial pos="0.0208065 -0.00102362 -0.00132199" quat="0.466616 0.545959 0.523663 0.458231" mass="0.0257518" diaginertia="6.36399e-06 5.8103e-06 1.96571e-06" />
+                                      <joint name="J_F2_L2" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708" actuatorfrcrange="-1.5 1.5" />
+                                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L2" />
+                                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L2" />
+                                    </body>
+                                  </body>
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                  <body name="LINK_SHOULDER_R0" pos="0.257499 0.195 -0.0072" quat="-2.59734e-06 2.59735e-06 -0.707108 0.707105">
+                    <inertial pos="-7.2e-05 -0.000567 0.033456" quat="0.999857 0.0169224 0 0" mass="0.182858" diaginertia="0.000196 0.000176135 5.78646e-05" />
+                    <joint name="J_SHOULDER_R0" pos="0 0 0" axis="0 0 1" range="-3.1416 1.0472" actuatorfrcrange="-138 138" />
+                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_SHOULDER_R0" />
+                    <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_SHOULDER_R0" />
+                    <body name="LINK_SHOULDER_R1" quat="0.707105 0.707108 0 0">
+                      <inertial pos="0.049216 -0.040357 -0.003963" quat="-0.132663 0.663789 0.166222 0.717046" mass="1.0713" diaginertia="0.00197207 0.00183072 0.00109821" />
+                      <joint name="J_SHOULDER_R1" pos="0 0 0" axis="0 0 1" range="-2.2689 0.5236" actuatorfrcrange="-138 138" />
+                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_R1" />
+                      <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_R1" />
+                      <body name="LINK_SHOULDER_R2" pos="0.1245 -0.04 0" quat="0.707105 0 0.707108 0">
+                        <inertial pos="0.000292 -0.007585 0.099618" quat="0.994991 -0.0238276 -0.0193852 -0.0951328" mass="1.49237" diaginertia="0.0068509 0.00664805 0.00119105" />
+                        <joint name="J_SHOULDER_R2" pos="0 0 0" axis="0 0 1" range="-2.3562 2.3562" actuatorfrcrange="-69 69" />
+                        <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_R2" />
+                        <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_SHOULDER_R2" />
+                        <body name="LINK_ELBOW_R0" pos="0 0 0.1955" quat="0.707105 0 -0.707108 0">
+                          <inertial pos="0.013153 1.1e-05 0.000185" quat="0.5 0.5 0.5 0.5" mass="0.061802" diaginertia="3.3e-05 1.9e-05 1.8e-05" />
+                          <joint name="J_ELBOW_R0" pos="0 0 0" axis="0 0 1" range="0 2.2689" actuatorfrcrange="-69 69" />
+                          <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_ELBOW_R0" />
+                          <geom type="mesh" rgba="0.898039 0.917647 0.929412 1" mesh="LINK_ELBOW_R0" />
+                          <body name="LINK_ELBOW_R1" quat="0.707105 0 0.707108 0">
+                            <inertial pos="-4e-05 1.3e-05 0.154649" quat="0.999777 9.96503e-05 0.0211126 -0.000127775" mass="1.29819" diaginertia="0.005799 0.005631 0.000749" />
+                            <joint name="J_ELBOW_R1" pos="0 0 0" axis="0 0 1" range="-3.927 0.7854" actuatorfrcrange="-55 55" />
+                            <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_ELBOW_R1" />
+                            <geom type="mesh" rgba="0.792157 0.819608 0.933333 1" mesh="LINK_ELBOW_R1" />
+                            <body name="LINK_WRIST_R0" pos="0 0 0.28" quat="0.499998 -0.5 -0.5 -0.500002">
+                              <inertial pos="0.003246 0.00028 -0.000451" quat="0.5 0.5 0.5 0.5" mass="0.063741" diaginertia="2.5e-05 2.5e-05 2.4e-05" />
+                              <joint name="J_WRIST_R0" pos="0 0 0" axis="0 0 1" range="-0.8727 0.8727" actuatorfrcrange="-43 43" />
+                              <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="1 1 1 1" mesh="LINK_WRIST_R0" />
+                              <geom type="mesh" rgba="1 1 1 1" mesh="LINK_WRIST_R0" />
+                              <body name="LINK_WRIST_R1" quat="0.707105 0.707108 0 0">
+                                <inertial pos="0.0380057 0.00731847 0.0453645" quat="0.783925 0.192319 0.36071 0.467294" mass="0.706738" diaginertia="0.00101041 0.000942046 0.000715394" />
+                                <joint name="J_WRIST_R1" pos="0 0 0" axis="0 0 1" range="-1.3963 1.3963" actuatorfrcrange="-43 43" />
+                                <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.898039 0.917647 0.929412 0.25" mesh="LINK_WRIST_R1" />
+                                <geom type="mesh" rgba="0.898039 0.917647 0.929412 0.25" mesh="LINK_WRIST_R1" />
+                                <geom pos="0.0555 0 0" quat="0.707105 -0.707108 0 0" type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_HAND_BASE_R" />
+                                <geom pos="0.0555 0 0" quat="0.707105 -0.707108 0 0" type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_HAND_BASE_R" />
+                                <body name="LINK_F0_R0" pos="0.076999 0.0208651 0.0224999" quat="0.707105 0 -0.707108 2.59735e-06">
+                                  <inertial pos="-3.617e-05 0 0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06" />
+                                  <joint name="J_F0_R0" pos="0 0 0" axis="0 0 1" range="0 1.9199" actuatorfrcrange="-3 3" />
+                                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L0" />
+                                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L0" />
+                                  <body name="LINK_F0_R1" quat="0.707105 -0.707108 0 0">
+                                    <inertial pos="0.0375062 -8.894e-05 -0.0001648" quat="0.483488 0.511508 0.48861 0.515615" mass="0.0688816" diaginertia="2.05529e-05 2.00084e-05 6.49879e-06" />
+                                    <joint name="J_F0_R1" pos="0 0 0" axis="0 0 1" range="-0.1745 0.7854" actuatorfrcrange="-3 3" />
+                                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L1" />
+                                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L1" />
+                                    <body name="LINK_F0_R2" pos="0.05425 0 0">
+                                      <inertial pos="0.0208975 -0.00213483 0.00106078" quat="0.447875 0.539993 0.526612 0.480099" mass="0.0310237" diaginertia="7.08344e-06 6.49812e-06 2.31845e-06" />
+                                      <joint name="J_F0_R2" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708" actuatorfrcrange="-1.5 1.5" />
+                                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L2" />
+                                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F0_L2" />
+                                    </body>
+                                  </body>
+                                </body>
+                                <body name="LINK_F1_R0" pos="0.15782 0.00574008 0.0225">
+                                  <inertial pos="3.617e-05 0 -0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06" />
+                                  <joint name="J_F1_R0" pos="0 0 0" axis="0 0 1" range="-0.4363 1.8326" actuatorfrcrange="-3 3" />
+                                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L0" />
+                                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L0" />
+                                  <body name="LINK_F1_R1" quat="0.707105 0.707108 0 0">
+                                    <inertial pos="0.0324375 -0.00016602 0.0001648" quat="0.508606 0.492035 0.51011 0.488885" mass="0.0702732" diaginertia="1.85812e-05 1.77891e-05 6.95973e-06" />
+                                    <joint name="J_F1_R1" pos="0 0 0" axis="0 0 1" range="-0.4363 0.4363" actuatorfrcrange="-3 3" />
+                                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L1" />
+                                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L1" />
+                                    <body name="LINK_F1_R2" pos="0.04825 0 0" quat="0.707105 -0.707108 0 0">
+                                      <inertial pos="0.0208065 -0.00102362 0.00132199" quat="0.545959 0.466616 0.458231 0.523663" mass="0.0257518" diaginertia="6.36399e-06 5.8103e-06 1.96571e-06" />
+                                      <joint name="J_F1_R2" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708" actuatorfrcrange="-1.5 1.5" />
+                                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L2" />
+                                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F1_L2" />
+                                    </body>
+                                  </body>
+                                </body>
+                                <body name="LINK_F2_R0" pos="0.15782 0.00573992 -0.0225">
+                                  <inertial pos="3.617e-05 0 -0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06" />
+                                  <joint name="J_F2_R0" pos="0 0 0" axis="0 0 1" range="-0.4363 1.8326" actuatorfrcrange="-3 3" />
+                                  <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L0" />
+                                  <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L0" />
+                                  <body name="LINK_F2_R1" quat="0.707105 0.707108 0 0">
+                                    <inertial pos="0.0324375 -0.00016602 0.0001648" quat="0.508606 0.492035 0.51011 0.488885" mass="0.0702732" diaginertia="1.85812e-05 1.77891e-05 6.95973e-06" />
+                                    <joint name="J_F2_R1" pos="0 0 0" axis="0 0 1" range="-0.4363 0.4363" actuatorfrcrange="-3 3" />
+                                    <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L1" />
+                                    <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L1" />
+                                    <body name="LINK_F2_R2" pos="0.04825 0 0" quat="0.707105 -0.707108 0 0">
+                                      <inertial pos="0.0208065 -0.00102362 0.00132199" quat="0.545959 0.466616 0.458231 0.523663" mass="0.0257518" diaginertia="6.36399e-06 5.8103e-06 1.96571e-06" />
+                                      <joint name="J_F2_R2" pos="0 0 0" axis="0 0 1" range="-0.4363 1.5708" actuatorfrcrange="-1.5 1.5" />
+                                      <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L2" />
+                                      <geom type="mesh" rgba="0.7 0.7 0.7 1" mesh="LINK_F2_L2" />
+                                    </body>
+                                  </body>
+                                </body>
+                              </body>
+                            </body>
+                          </body>
+                        </body>
+                      </body>
+                    </body>
+                  </body>
+                </body>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <motor name="M_BASE_X" joint="J_BASE_X" ctrlrange="-10 10" forcerange="-5000 5000" />
+    <motor name="M_BASE_Y" joint="J_BASE_Y" ctrlrange="-10 10" forcerange="-5000 5000" />
+    <motor name="M_BASE_YAW" joint="J_BASE_YAW" ctrlrange="-1000000 1000000" forcerange="-5000 5000" />
+    <motor name="M_WAIST_M0" joint="J_WAIST_M0" ctrlrange="-3.0543 3.0543" forcerange="-264 264" />
+    <motor name="M_WAIST_M1" joint="J_WAIST_M1" ctrlrange="-0.6421 0.1159" forcerange="-12999.6 12999.6" />
+    <motor name="M_WAIST_M2" joint="J_WAIST_M2" ctrlrange="0 1.5708" forcerange="-396 396" />
+    <motor name="M_WAIST_M3" joint="J_WAIST_M3" ctrlrange="-0.3491 0.3491" forcerange="-315.29 315.29" />
+    <motor name="M_NECK_M0" joint="J_NECK_M0" ctrlrange="-1.2479 1.2479" forcerange="-1.5 1.5" />
+    <motor name="M_NECK_M1" joint="J_NECK_M1" ctrlrange="-0.0524 1.117" forcerange="-1.5 1.5" />
+    <motor name="M_SHOULDER_L0" joint="J_SHOULDER_L0" ctrlrange="-3.1416 1.0472" forcerange="-138 138" />
+    <motor name="M_SHOULDER_L1" joint="J_SHOULDER_L1" ctrlrange="-0.5236 2.2689" forcerange="-138 138" />
+    <motor name="M_SHOULDER_L2" joint="J_SHOULDER_L2" ctrlrange="-2.3562 2.3562" forcerange="-69 69" />
+    <motor name="M_ELBOW_L0" joint="J_ELBOW_L0" ctrlrange="-2.2689 0" forcerange="-69 69" />
+    <motor name="M_ELBOW_L1" joint="J_ELBOW_L1" ctrlrange="-0.7854 3.927" forcerange="-55 55" />
+    <motor name="M_WRIST_L0" joint="J_WRIST_L0" ctrlrange="-0.8727 0.8727" forcerange="-43 43" />
+    <motor name="M_WRIST_L1" joint="J_WRIST_L1" ctrlrange="-1.3963 1.3963" forcerange="-43 43" />
+    <motor name="M_F0_L0" joint="J_F0_L0" ctrlrange="0 1.9199" forcerange="-3 3" />
+    <motor name="M_F0_L1" joint="J_F0_L1" ctrlrange="-0.1745 0.7854" forcerange="-3 3" />
+    <motor name="M_F0_L2" joint="J_F0_L2" ctrlrange="-0.4363 1.5708" forcerange="-1.5 1.5" />
+    <motor name="M_F1_L0" joint="J_F1_L0" ctrlrange="-0.4363 1.8326" forcerange="-3 3" />
+    <motor name="M_F1_L1" joint="J_F1_L1" ctrlrange="-0.4363 0.4363" forcerange="-3 3" />
+    <motor name="M_F1_L2" joint="J_F1_L2" ctrlrange="-0.4363 1.5708" forcerange="-1.5 1.5" />
+    <motor name="M_F2_L0" joint="J_F2_L0" ctrlrange="-0.4363 1.8326" forcerange="-3 3" />
+    <motor name="M_F2_L1" joint="J_F2_L1" ctrlrange="-0.4363 0.4363" forcerange="-3 3" />
+    <motor name="M_F2_L2" joint="J_F2_L2" ctrlrange="-0.4363 1.5708" forcerange="-1.5 1.5" />
+    <motor name="M_SHOULDER_R0" joint="J_SHOULDER_R0" ctrlrange="-3.1416 1.0472" forcerange="-138 138" />
+    <motor name="M_SHOULDER_R1" joint="J_SHOULDER_R1" ctrlrange="-2.2689 0.5236" forcerange="-138 138" />
+    <motor name="M_SHOULDER_R2" joint="J_SHOULDER_R2" ctrlrange="-2.3562 2.3562" forcerange="-69 69" />
+    <motor name="M_ELBOW_R0" joint="J_ELBOW_R0" ctrlrange="0 2.2689" forcerange="-69 69" />
+    <motor name="M_ELBOW_R1" joint="J_ELBOW_R1" ctrlrange="-3.927 0.7854" forcerange="-55 55" />
+    <motor name="M_WRIST_R0" joint="J_WRIST_R0" ctrlrange="-0.8727 0.8727" forcerange="-43 43" />
+    <motor name="M_WRIST_R1" joint="J_WRIST_R1" ctrlrange="-1.3963 1.3963" forcerange="-43 43" />
+    <motor name="M_F0_R0" joint="J_F0_R0" ctrlrange="0 1.9199" forcerange="-3 3" />
+    <motor name="M_F0_R1" joint="J_F0_R1" ctrlrange="-0.1745 0.7854" forcerange="-3 3" />
+    <motor name="M_F0_R2" joint="J_F0_R2" ctrlrange="-0.4363 1.5708" forcerange="-1.5 1.5" />
+    <motor name="M_F1_R0" joint="J_F1_R0" ctrlrange="-0.4363 1.8326" forcerange="-3 3" />
+    <motor name="M_F1_R1" joint="J_F1_R1" ctrlrange="-0.4363 0.4363" forcerange="-3 3" />
+    <motor name="M_F1_R2" joint="J_F1_R2" ctrlrange="-0.4363 1.5708" forcerange="-1.5 1.5" />
+    <motor name="M_F2_R0" joint="J_F2_R0" ctrlrange="-0.4363 1.8326" forcerange="-3 3" />
+    <motor name="M_F2_R1" joint="J_F2_R1" ctrlrange="-0.4363 0.4363" forcerange="-3 3" />
+    <motor name="M_F2_R2" joint="J_F2_R2" ctrlrange="-0.4363 1.5708" forcerange="-1.5 1.5" />
+  </actuator>
+</mujoco>

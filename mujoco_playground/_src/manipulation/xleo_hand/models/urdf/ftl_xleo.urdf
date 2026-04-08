@@ -5,6 +5,10 @@ TODO:
 1. waist and head: joint vel and tau limits 
 -->
 <robot name="xleo">  <!-- virtual links and joints (X-Y-Yaw) of chassis movement -->
+  <mujoco>
+    <compiler meshdir="../ftl_meshes" discardvisual="false" balanceinertia="false" />
+  </mujoco>
+
   <link name="world"/>
   <link name="BASE_X">
     <inertial>

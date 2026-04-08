@@ -495,7 +495,7 @@ def load_callback(model=None, data=None):
   finger_ids = list(range(5, 14)) + list(range(19, 28))
   kp = np.zeros(consts.NU, dtype=np.float64)
   kd = np.zeros(consts.NU, dtype=np.float64)
-  kp[wrist_ids] = 10.0
+  kp[wrist_ids] = 5
   kd[wrist_ids] = 0.5
   kp[finger_ids] = 5.0
   kd[finger_ids] = 0.1

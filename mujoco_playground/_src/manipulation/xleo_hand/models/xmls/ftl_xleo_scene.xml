@@ -1,0 +1,25 @@
+<mujoco model="An empty scene">
+  <include file="ftl_xleo_position.xml" />
+  <default>
+    <default class="convex_decomposition">
+      <geom contype="1" conaffinity="15" rgba="0.3 0.3 0.3 1" condim="3" friction="0.8 0.01 0.0001" solimp="0.25 0.99 0.015 0.5 1" solref="0.03 1" />
+    </default>
+  </default>
+  <statistic center="0.05 0 0" extent="0.6" meansize="0.01"/>
+  <visual>    <!-- <headlight diffuse=".8 .8 .8" ambient=".2 .2 .2" specular="1 1 1"/> -->
+    <rgba force="1 0 0 1"/>
+    <global azimuth="120" elevation="-40"/>
+    <map force="0.01" stiffness="500"/>
+    <scale forcewidth="0.1" contactwidth="0.5" contactheight="0.2"/>
+    <quality shadowsize="8192"/>
+  </visual>
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="1 1 1" rgb2="1 1 1" width="800" height="800"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="1 1 1" rgb2="1 1 1" markrgb="0 0 0" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0"/>
+  </asset>
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" pos="0 0 0" size="0 0 0.01" type="plane" material="groundplane" contype="0" conaffinity="0" group="1"/>
+  </worldbody>
+</mujoco>
