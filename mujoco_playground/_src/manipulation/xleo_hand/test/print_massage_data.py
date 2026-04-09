@@ -28,7 +28,7 @@ def _find_data_file() -> Path:
   """Walk up from this file to find project root, then locate data/massage_data.pkl."""
   p = Path(__file__).resolve().parent
   while p != p.parent:
-    candidate = p / "data" / "massage_data.pkl"
+    candidate = p / "data" / "massage_data_mink.pkl"
     if candidate.exists():
       return candidate
     p = p.parent

@@ -73,42 +73,42 @@ TODO:
     <parent link="L_WRIST" />
     <child link="L_BASE_X" />
     <axis xyz="1 0 0" />
-    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
+    <limit lower="-0.2" upper="0.2" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_Y" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_X" />
     <child link="L_BASE_Y" />
     <axis xyz="0 1 0" />
-    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
+    <limit lower="-0.2" upper="0.2" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_Z" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_Y" />
     <child link="L_BASE_Z" />
     <axis xyz="0 0 1" />
-    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
+    <limit lower="-0.2" upper="0.2" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_ROLL" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_Z" />
     <child link="L_BASE_ROLL" />
     <axis xyz="1 0 0" />
-    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_PITCH" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_ROLL" />
     <child link="L_BASE_PITCH" />
     <axis xyz="0 1 0" />
-    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_L_YAW" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="L_BASE_PITCH" />
     <child link="L_BASE_YAW" />
     <axis xyz="0 0 1" />
-    <limit lower="-3.14159" upper="3.14159" effort="10" velocity="10" />
+    <limit lower="-3.14159" upper="3.14159" effort="30" velocity="10" />
   </joint>
   <joint name="J_HAND_BASE_L_OFFSET" type="fixed">
     <origin xyz="0 0 0" rpy="1.5708 0 0" />
@@ -492,21 +492,21 @@ TODO:
     <parent link="R_WRIST" />
     <child link="R_BASE_X" />
     <axis xyz="1 0 0" />
-    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
+    <limit lower="-0.2" upper="0.2" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_Y" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_X" />
     <child link="R_BASE_Y" />
     <axis xyz="0 1 0" />
-    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
+    <limit lower="-0.2" upper="0.2" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_Z" type="prismatic">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="R_BASE_Y" />
     <child link="R_BASE_Z" />
     <axis xyz="0 0 1" />
-    <limit lower="-0.5" upper="0.5" effort="10" velocity="10" />
+    <limit lower="-0.2" upper="0.2" effort="30" velocity="10" />
   </joint>
   <joint name="J_LINK_HAND_BASE_R_ROLL" type="revolute">
     <origin xyz="0 0 0" rpy="0 0 0" />

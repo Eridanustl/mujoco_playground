@@ -1,7 +1,7 @@
 <mujoco model="An empty scene">
   <include file="ftl_xleo_dual_hand_position.xml" />
   <option>
-    <flag contact="disable" />
+    <!-- <flag contact="disable" /> -->
   </option>
 
   <default>

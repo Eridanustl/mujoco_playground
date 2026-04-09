@@ -194,6 +194,28 @@ def brax_ppo_config(
         distribution_type="normal",
         noise_std_type="log",
     )
+  elif env_name == "XleoMassage2":
+    rl_config.num_timesteps = 200_000_000
+    rl_config.num_evals = 20
+    rl_config.num_minibatches = 32
+    rl_config.unroll_length = 40
+    rl_config.num_updates_per_batch = 4
+    rl_config.discounting = 0.99
+    rl_config.learning_rate = 5e-5
+    rl_config.entropy_cost = 1e-2
+    rl_config.num_envs = 16384
+    rl_config.batch_size = 512
+    rl_config.num_resets_per_eval = 0
+    # rl_config.normalize_observations = False
+    rl_config.network_factory = config_dict.create(
+        policy_hidden_layer_sizes=(512, 256, 128),
+        value_hidden_layer_sizes=(512, 256, 128),
+        activation=linen.elu,
+        policy_obs_key="state",
+        value_obs_key="privileged_state",
+        distribution_type="normal",
+        noise_std_type="log",
+    )
   elif env_name == "AeroCubeRotateZAxis":
     rl_config.num_timesteps = 300_000_000
     rl_config.num_evals = 10
@@ -266,7 +288,9 @@ def brax_vision_ppo_config(
   return rl_config
 
 
-def rsl_rl_config(env_name: str, unused_impl: Optional[str] = None) -> config_dict.ConfigDict:  # pylint: disable=unused-argument
+def rsl_rl_config(
+    env_name: str, unused_impl: Optional[str] = None
+) -> config_dict.ConfigDict:  # pylint: disable=unused-argument
   """Returns tuned RSL-RL PPO config for the given environment."""
 
   rl_config = config_dict.create(

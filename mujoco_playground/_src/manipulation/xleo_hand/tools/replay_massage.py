@@ -43,11 +43,11 @@ def _project_root() -> Path:
 @dataclass
 class ReplayConfig:
   # PD gains
-  wrist_kp: float = 50
-  wrist_kd: float = 5
+  wrist_kp: float = 100.0
+  wrist_kd: float = 15.0
   wrist_rot_kp: float = 10.0
   wrist_rot_kd: float = 0.5
-  finger_kp: float = 5.0
+  finger_kp: float = 3.0
   finger_kd: float = 0.1
   # Contact force synthesis: peak force per axis (N)
   # -- Left wrist --
@@ -243,11 +243,25 @@ def run(
   timestep = model.opt.timestep
   total_steps = int(duration / timestep)
 
+  # Validate that total_steps matches data length to avoid silent wrap-around.
+  n_data_frames = qpos_data.shape[0]
+  if total_steps != n_data_frames:
+    print(
+        f"WARNING: total_steps={total_steps} (from duration={duration}s) "
+        f"!= data frames={n_data_frames}. Clamping to min."
+    )
+    total_steps = min(total_steps, n_data_frames)
+
   print(
       f"Simulation: timestep={timestep}, total_steps={total_steps}, "
       f"record every step, data_freq={src_data_freq} Hz (same as source)"
   )
   print(f"Duration: {duration}s, source data_freq: {src_data_freq} Hz")
+
+  # Initialise qpos to the first data frame to avoid large PD error at t=0.
+  for i in range(consts.NQ):
+    data.qpos[qpos_adrs[i]] = qpos_data[0][i]
+  mujoco.mj_forward(model, data)
 
   # Storage for recorded data.
   rec_qpos = []
@@ -258,10 +272,11 @@ def run(
   contact_mask_list = []
   cfrc_ext_raw_list = []
 
+  log_interval = max(1, total_steps // 10)
+
   for step_i in range(total_steps):
     # Direct index into data – each step corresponds to one data frame.
-    data_idx = step_i % qpos_data.shape[0]
-    qpos_target = qpos_data[data_idx]
+    qpos_target = qpos_data[step_i]
 
     # PD torque control.
     for i in range(consts.NQ):
@@ -315,7 +330,7 @@ def run(
     rec_key_body_xpos.append(key_frame)
 
     # Progress.
-    if step_i % (total_steps // 10) == 0:
+    if step_i % log_interval == 0:
       pct = step_i / total_steps * 100
       print(f"  {pct:.0f}% ({step_i}/{total_steps})")
 
@@ -396,8 +411,11 @@ def run(
         torque = kp[i] * q_err - kd[i] * qvel_actual
         d.ctrl[act_ids[i]] = torque
 
-    # Reset data for viewer playback.
+    # Reset data for viewer playback — initialise to first frame.
     data2 = mujoco.MjData(model)
+    for i in range(consts.NQ):
+      data2.qpos[qpos_adrs[i]] = qpos_data[0][i]
+    mujoco.mj_forward(model, data2)
     mujoco.set_mjcb_control(controller)
     signal.signal(signal.SIGINT, signal.SIG_DFL)
     mujoco.viewer.launch(model, data2)
