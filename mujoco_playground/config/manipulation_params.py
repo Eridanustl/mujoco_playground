@@ -195,7 +195,7 @@ def brax_ppo_config(
         noise_std_type="log",
     )
   elif env_name == "XleoMassage2":
-    rl_config.num_timesteps = 200_000_000
+    rl_config.num_timesteps = 400_000_000
     rl_config.num_evals = 20
     rl_config.num_minibatches = 32
     rl_config.unroll_length = 40

@@ -18,9 +18,25 @@
 转换流程：Brax PPO checkpoint → JAX params → Flax MLP → ONNX
 
 用法:
+    # 基本用法（使用默认环境 XleoMassage2）:
     python export_xleo_massage_onnx.py \
-        --ckpt_path /path/to/XleoMassage-checkpoint \
+        --ckpt_path /path/to/XleoMassage2-checkpoint
+
+    # 指定环境名称:
+    python export_xleo_massage_onnx.py \
+        --env_name XleoMassage \
+        --ckpt_path /path/to/XleoMassage-checkpoint
+
+    # 指定输出路径:
+    python export_xleo_massage_onnx.py \
+        --ckpt_path /path/to/checkpoint \
         --output sim2sim/onnx/xleo_massage_policy.onnx
+
+    # 指定 ONNX 输入/输出节点名称:
+    python export_xleo_massage_onnx.py \
+        --ckpt_path /path/to/checkpoint \
+        --onnx_input_name observation \
+        --onnx_output_name actions
 
 输出的 ONNX 模型可被 play_xleo_massage.py 加载用于 sim2sim 部署。
 """
@@ -47,6 +63,24 @@ from brax.training.checkpoint import load as brax_load
 
 from mujoco_playground import manipulation
 from mujoco_playground.config import manipulation_params
+
+# ============================================================================
+# 可配置参数（默认值）
+# ============================================================================
+
+# 环境名称，需与 mujoco_playground 中注册的任务名一致
+DEFAULT_ENV_NAME = "XleoMassage2"
+
+# ONNX 输出文件名（当 --output 未指定时，使用此名称保存到 checkpoint 所在目录）
+DEFAULT_ONNX_FILENAME = "xleo_massage_policy.onnx"
+
+# ONNX 模型的输入/输出节点名称，供下游部署脚本引用
+DEFAULT_ONNX_INPUT_NAME = "obs"
+DEFAULT_ONNX_OUTPUT_NAME = "actions"
+
+# 一致性验证的相对误差阈值
+TOLERANCE_STRICT = 1e-5  # 严格通过
+TOLERANCE_ACCEPT = 1e-3  # float32 精度可接受
 
 
 # ---------------------------------------------------------------------------
@@ -146,9 +180,7 @@ def build_flax_params(
             f" kernel {k_shape}, bias {b_shape}"
         )
       else:
-        print(
-            f"  [WARN] Brax 参数中未找到 MLP_0/{brax_key}，使用初始化值"
-        )
+        print(f"  [WARN] Brax 参数中未找到 MLP_0/{brax_key}，使用初始化值")
         new_params[layer_name] = init_params[layer_name]
     else:
       # 输出层：从 Dense_0 取
@@ -160,8 +192,7 @@ def build_flax_params(
         k_shape = brax_output["kernel"].shape
         b_shape = brax_output["bias"].shape
         print(
-            f"  迁移 {layer_name} ← Dense_0:"
-            f" kernel {k_shape}, bias {b_shape}"
+            f"  迁移 {layer_name} ← Dense_0: kernel {k_shape}, bias {b_shape}"
         )
       else:
         print(f"  [WARN] Brax 参数中未找到 Dense_0，使用初始化值")
@@ -176,12 +207,18 @@ def main():
       description="将 XleoMassage Brax PPO checkpoint 导出为 ONNX 格式"
   )
   parser.add_argument(
+      "--env_name",
+      type=str,
+      default=DEFAULT_ENV_NAME,
+      help=f"环境名称 (默认: {DEFAULT_ENV_NAME})",
+  )
+  parser.add_argument(
       "--ckpt_path",
       type=str,
       required=True,
       help=(
           "Brax PPO checkpoint 目录路径 (如"
-          " checkpoints/XleoMassage-20260319-123456)"
+          " checkpoints/XleoMassage2-20260319-123456)"
       ),
   )
   parser.add_argument(
@@ -190,21 +227,33 @@ def main():
       default=None,
       help=(
           "输出 ONNX 文件路径 (默认: ckpt_path 上级 checkpoints 目录下的"
-          " xleo_massage_policy.onnx)"
+          f" {DEFAULT_ONNX_FILENAME})"
       ),
+  )
+  parser.add_argument(
+      "--onnx_input_name",
+      type=str,
+      default=DEFAULT_ONNX_INPUT_NAME,
+      help=f"ONNX 模型输入节点名称 (默认: {DEFAULT_ONNX_INPUT_NAME})",
+  )
+  parser.add_argument(
+      "--onnx_output_name",
+      type=str,
+      default=DEFAULT_ONNX_OUTPUT_NAME,
+      help=f"ONNX 模型输出节点名称 (默认: {DEFAULT_ONNX_OUTPUT_NAME})",
   )
   args = parser.parse_args()
 
   # 默认输出到 checkpoint 所在的 checkpoints 目录
   if args.output is None:
     ckpt_dir = os.path.dirname(os.path.abspath(args.ckpt_path))
-    args.output = os.path.join(ckpt_dir, "xleo_massage_policy.onnx")
+    args.output = os.path.join(ckpt_dir, DEFAULT_ONNX_FILENAME)
   os.makedirs(os.path.dirname(args.output), exist_ok=True)
 
   # ------------------------------------------------------------------
-  # 1. 加载 XleoMassage 环境，获取 obs / action 维度和网络配置
+  # 1. 加载环境，获取 obs / action 维度和网络配置
   # ------------------------------------------------------------------
-  env_name = "XleoMassage"
+  env_name = args.env_name
   print(f"[1/6] 加载环境 {env_name} ...")
 
   ppo_params = manipulation_params.brax_ppo_config(env_name)
@@ -308,16 +357,16 @@ def main():
   # 重命名输入输出节点，使其与下游部署脚本兼容
   old_input_name = onnx_model.graph.input[0].name
   old_output_name = onnx_model.graph.output[0].name
-  onnx_model.graph.input[0].name = "obs"
-  onnx_model.graph.output[0].name = "continuous_actions"
+  onnx_model.graph.input[0].name = args.onnx_input_name
+  onnx_model.graph.output[0].name = args.onnx_output_name
   # 同时更新引用了旧名字的节点
   for node in onnx_model.graph.node:
     for i, inp in enumerate(node.input):
       if inp == old_input_name:
-        node.input[i] = "obs"
+        node.input[i] = args.onnx_input_name
     for i, out in enumerate(node.output):
       if out == old_output_name:
-        node.output[i] = "continuous_actions"
+        node.output[i] = args.onnx_output_name
 
   onnx.save(onnx_model, args.output)
   print(f"  ONNX 导出完成 ✓  →  {args.output}")
@@ -351,7 +400,9 @@ def main():
   onnx_session = rt.InferenceSession(
       args.output, providers=["CPUExecutionProvider"]
   )
-  onnx_pred = onnx_session.run(["continuous_actions"], {"obs": test_np})[0][0]
+  onnx_pred = onnx_session.run(
+      [args.onnx_output_name], {args.onnx_input_name: test_np}
+  )[0][0]
 
   max_diff = np.max(np.abs(jax_pred - onnx_pred))
   # 使用相对误差，避免大数值时绝对误差误判
@@ -362,12 +413,16 @@ def main():
   print(f"  max |JAX - ONNX|  = {max_diff:.2e}")
   print(f"  相对误差            = {rel_diff:.2e}")
 
-  if rel_diff < 1e-5:
-    print("  一致性检查通过 ✓ (相对误差 < 1e-5)")
-  elif rel_diff < 1e-3:
-    print("  一致性检查通过 ✓ (相对误差 < 1e-3，float32 精度可接受)")
+  if rel_diff < TOLERANCE_STRICT:
+    print(f"  一致性检查通过 ✓ (相对误差 < {TOLERANCE_STRICT})")
+  elif rel_diff < TOLERANCE_ACCEPT:
+    print(
+        f"  一致性检查通过 ✓ (相对误差 < {TOLERANCE_ACCEPT}，float32 精度可接受)"
+    )
   else:
-    print("  一致性检查失败 ✗ (相对误差 >= 1e-3，请检查权重迁移)")
+    print(
+        f"  一致性检查失败 ✗ (相对误差 >= {TOLERANCE_ACCEPT}，请检查权重迁移)"
+    )
 
   print(f"\n完成！ONNX 模型已保存到: {args.output}")
   print("可复制到 sim2sim/onnx/ 并运行:")

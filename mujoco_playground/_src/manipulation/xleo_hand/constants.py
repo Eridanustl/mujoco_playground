@@ -159,12 +159,12 @@ FINGERTIP_BODY_NAMES = [
 CONTACT_FORCE_BODY_NAMES = [
     "L_WRIST",
     "LINK_F0_L2",
-    "LINK_F1_L1",
-    "LINK_F2_L1",
+    "LINK_F1_L2",
+    "LINK_F2_L2",
     "R_WRIST",
     "LINK_F0_R2",
-    "LINK_F1_R1",
-    "LINK_F2_R1",
+    "LINK_F1_R2",
+    "LINK_F2_R2",
 ]
 
 # Sensor names for contact force tracking (force sensors in XML).
@@ -198,12 +198,14 @@ WRIST_INDICES = LEFT_WRIST_INDICES + RIGHT_WRIST_INDICES
 FINGER_INDICES = LEFT_FINGER_INDICES + RIGHT_FINGER_INDICES
 
 # Wrist slide (linear) vs hinge (rotation) actuator indices.
-WRIST_SLIDE_INDICES = list(range(0, 2)) + list(range(14, 16))   # X, Y per hand
-WRIST_HINGE_INDICES = list(range(2, 5)) + list(range(16, 19))   # ROLL, PITCH, YAW per hand
+WRIST_SLIDE_INDICES = list(range(0, 2)) + list(range(14, 16))  # X, Y per hand
+WRIST_HINGE_INDICES = list(range(2, 5)) + list(
+    range(16, 19)
+)  # ROLL, PITCH, YAW per hand
 
 # Per-hand sub-group slices for observation / reward construction.
-L_WRIST_SLIDE = slice(0, 2)    # X, Y
-L_WRIST_HINGE = slice(2, 5)    # ROLL, PITCH, YAW
+L_WRIST_SLIDE = slice(0, 2)  # X, Y
+L_WRIST_HINGE = slice(2, 5)  # ROLL, PITCH, YAW
 L_WRIST_ALL = slice(0, 5)
 L_FINGER_ALL = slice(5, 14)
 

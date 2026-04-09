@@ -53,8 +53,10 @@ def run(pkl_path: str, speed: float):
   data_freq = traj["data_freq"]
   duration = traj["duration"]
 
-  print(f"Trajectory: {qpos_data.shape[0]} frames, "
-        f"data_freq={data_freq} Hz, duration={duration}s")
+  print(
+      f"Trajectory: {qpos_data.shape[0]} frames, "
+      f"data_freq={data_freq} Hz, duration={duration}s"
+  )
   print(f"Playback speed: {speed}x")
 
   # Load scene model.
@@ -112,19 +114,21 @@ def run(pkl_path: str, speed: float):
 
       # Sync viewer and sleep to roughly 60 fps.
       viewer.sync()
-      time.sleep(max(0, 1.0 / 60.0 - (time.monotonic() - wall_start - wall_now)))
+      time.sleep(
+          max(0, 1.0 / 60.0 - (time.monotonic() - wall_start - wall_now))
+      )
 
 
 def main():
   parser = argparse.ArgumentParser(
       description="Kinematic visualizer for massage trajectories"
   )
-  default_pkl = str(_project_root() / "data" / "massage_traj.pkl")
+  default_pkl = str(_project_root() / "data" / "massage_data_mink.pkl")
   parser.add_argument(
       "--pkl_path",
       type=str,
       default=default_pkl,
-      help="Path to trajectory pkl (default: data/massage_traj.pkl)",
+      help="Path to trajectory pkl (default: data/massage_data_mink.pkl)",
   )
   parser.add_argument(
       "--speed",

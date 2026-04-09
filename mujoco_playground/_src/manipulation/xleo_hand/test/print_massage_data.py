@@ -102,6 +102,23 @@ def main():
       vals = "  ".join(f"{qpos[i, j]:>+8.4f}" for j in nz_joints)
       print(f"  {i:5d}  {vals}")
 
+    # Print first 5 frames as XML keyframe-ready strings (left/right on separate lines).
+    # Joint layout: L_wrist(5) + L_finger(9) + R_wrist(5) + R_finger(9) = 28
+    n_left = len(consts.LEFT_WRIST_JOINT_NAMES) + len(consts.LEFT_FINGER_JOINT_NAMES)  # 14
+    print(f"\n{'=' * 72}")
+    print(f"First {min(5, qpos.shape[0])} frames — XML keyframe format")
+    print(f"(copy the qpos= line directly into <key> element)")
+    print(f"Joint order: {' '.join(consts.JOINT_NAMES)}")
+    print(f"{'=' * 72}")
+    for i in range(min(5, qpos.shape[0])):
+      left_vals = " ".join(f"{v:.6f}" for v in qpos[i, :n_left])
+      right_vals = " ".join(f"{v:.6f}" for v in qpos[i, n_left:])
+      print(f"\n<!-- frame {i} -->")
+      print(f'<key name="frame_{i}" qpos="')
+      print(f"  {left_vals}")
+      print(f"  {right_vals}")
+      print(f'"/>')
+
 
 if __name__ == "__main__":
   main()

@@ -41,11 +41,11 @@ def default_config() -> config_dict.ConfigDict:
       reward_config=config_dict.create(
           # DeepMimic-style sub-reward weights (should sum to 1.0).
           scales=config_dict.create(
-              pose=0.5,
+              pose=0.4,
               vel=0.15,
-              root_pose=0.1,
+              root_pose=0.15,
               root_vel=0.15,
-              key_pos=0.1,
+              key_pos=0.15,
               # contact_force=0.1,
               # Regularization penalties (unchanged).
               action_rate=-1e-2,
@@ -53,7 +53,7 @@ def default_config() -> config_dict.ConfigDict:
               # energy=-1e-6
           ),
           # DeepMimic exponential reward scales: r = exp(-scale * err).
-          pose_scale=1,
+          pose_scale=1.0,
           vel_scale=0.01,
           root_pose_scale=10.0,
           root_vel_scale=1.0,
@@ -395,16 +395,14 @@ class Massage(mjx_env.MjxEnv):
       state = self._maybe_apply_perturbation(state)
 
     # Policy outputs target joint positions relative to default pose.
-    wrist_action = (
+    scaled_action = action.at[self._wrist_joint_ids].set(
         action[self._wrist_joint_ids] * self._config.wrist_action_scale
     )
-    finger_action = (
+    scaled_action = scaled_action.at[self._finger_joint_ids].set(
         action[self._finger_joint_ids] * self._config.finger_action_scale
     )
-    action = action.at[self._wrist_joint_ids].set(wrist_action)
-    action = action.at[self._finger_joint_ids].set(finger_action)
 
-    position_targets = self._default_pose + action
+    position_targets = self._default_pose + scaled_action
     # Clip to joint limits so PD controller never drives past range.
     position_targets = jp.clip(
         position_targets,
@@ -469,7 +467,8 @@ class Massage(mjx_env.MjxEnv):
 
     # Update info and metrics.
     state.info["last_last_act"] = state.info["last_act"]
-    state.info["last_act"] = action
+    # state.info["last_act"] = action
+    state.info["last_act"] = scaled_action
     for k, v in rewards.items():
       state.metrics[f"reward/{k}"] = v
 
