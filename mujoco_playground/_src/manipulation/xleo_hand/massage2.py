@@ -20,7 +20,8 @@ def default_config() -> config_dict.ConfigDict:
       ctrl_dt=0.02,
       sim_dt=0.005,
       finger_action_scale=0.5,
-      wrist_action_scale=0.05,
+      wrist_slide_action_scale=0.05,
+      wrist_hinge_action_scale=0.5,
       action_repeat=1,
       episode_length=1000,
       # PD gains for torque control (all motors).
@@ -395,14 +396,22 @@ class Massage(mjx_env.MjxEnv):
       state = self._maybe_apply_perturbation(state)
 
     # Policy outputs target joint positions relative to default pose.
-    scaled_action = action.at[self._wrist_joint_ids].set(
-        action[self._wrist_joint_ids] * self._config.wrist_action_scale
+    wrist_slide_ids = jp.array(consts.WRIST_SLIDE_INDICES)
+    wrist_hinge_ids = jp.array(consts.WRIST_HINGE_INDICES)
+    wrist_slide_action = (
+        action[wrist_slide_ids] * self._config.wrist_slide_action_scale
     )
-    scaled_action = scaled_action.at[self._finger_joint_ids].set(
+    wrist_hinge_action = (
+        action[wrist_hinge_ids] * self._config.wrist_hinge_action_scale
+    )
+    finger_action = (
         action[self._finger_joint_ids] * self._config.finger_action_scale
     )
+    action = action.at[wrist_slide_ids].set(wrist_slide_action)
+    action = action.at[wrist_hinge_ids].set(wrist_hinge_action)
+    action = action.at[self._finger_joint_ids].set(finger_action)
 
-    position_targets = self._default_pose + scaled_action
+    position_targets = self._default_pose + action
     # Clip to joint limits so PD controller never drives past range.
     position_targets = jp.clip(
         position_targets,
@@ -467,8 +476,7 @@ class Massage(mjx_env.MjxEnv):
 
     # Update info and metrics.
     state.info["last_last_act"] = state.info["last_act"]
-    # state.info["last_act"] = action
-    state.info["last_act"] = scaled_action
+    state.info["last_act"] = action
     for k, v in rewards.items():
       state.metrics[f"reward/{k}"] = v
 

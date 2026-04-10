@@ -20,7 +20,9 @@ Observation layout (state, input to policy network):
     + Last action (28) = 264 dims
 
 Action processing pipeline:
-    1. Scale: wrist *= WRIST_ACTION_SCALE, finger *= FINGER_ACTION_SCALE
+    1. Scale: wrist_slide *= WRIST_SLIDE_ACTION_SCALE,
+       wrist_hinge *= WRIST_HINGE_ACTION_SCALE,
+       finger *= FINGER_ACTION_SCALE
     2. Position targets = default_pose + scaled_action
     3. Clip to joint limits
     4. PD torque: tau = kp * (target - q) - kd * qvel
@@ -52,7 +54,8 @@ CTRL_DT = 0.02  # Policy control timestep (s)
 N_SUBSTEPS = int(CTRL_DT / SIM_DT)  # = 4
 
 # --- Action scales ---
-WRIST_ACTION_SCALE = 0.05
+WRIST_SLIDE_ACTION_SCALE = 0.05
+WRIST_HINGE_ACTION_SCALE = 0.5
 FINGER_ACTION_SCALE = 0.5
 
 # --- PD gains (per joint type) ---
@@ -164,7 +167,8 @@ class OnnxController:
     self._torque_high = model.actuator_ctrlrange[:, 1]
 
     # Wrist / finger index masks
-    self._wrist_ids = np.array(consts.WRIST_INDICES, dtype=np.int32)
+    self._wrist_slide_ids = np.array(consts.WRIST_SLIDE_INDICES, dtype=np.int32)
+    self._wrist_hinge_ids = np.array(consts.WRIST_HINGE_INDICES, dtype=np.int32)
     self._finger_ids = np.array(consts.FINGER_INDICES, dtype=np.int32)
 
     # Expert trajectory
@@ -340,7 +344,8 @@ class OnnxController:
 
     # Scale action per joint type
     action = self._ema_action.copy()
-    action[self._wrist_ids] *= WRIST_ACTION_SCALE
+    action[self._wrist_slide_ids] *= WRIST_SLIDE_ACTION_SCALE
+    action[self._wrist_hinge_ids] *= WRIST_HINGE_ACTION_SCALE
     action[self._finger_ids] *= FINGER_ACTION_SCALE
 
     # Position targets, clipped to joint limits
