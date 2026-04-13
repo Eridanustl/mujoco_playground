@@ -41,6 +41,7 @@ from mujoco_playground._src.manipulation.leap_hand import rotate_z as leap_rotat
 from mujoco_playground._src.manipulation.aero_hand import rotate_z as aero_hand_rotate_z
 from mujoco_playground._src.manipulation.xleo_hand import massage as xleo_massage
 from mujoco_playground._src.manipulation.xleo_hand import massage2 as xleo_massage2
+from mujoco_playground._src.manipulation.xleo_hand import massage3 as xleo_massage3
 
 _envs = {
     "AlohaHandOver": aloha_handover.HandOver,
@@ -56,6 +57,7 @@ _envs = {
     "AeroCubeRotateZAxis": aero_hand_rotate_z.CubeRotateZAxis,
     "XleoMassage": xleo_massage.Massage,
     "XleoMassage2": xleo_massage2.Massage,
+    "XleoMassage3": xleo_massage3.Massage,
 }
 
 _cfgs = {
@@ -72,6 +74,7 @@ _cfgs = {
     "AeroCubeRotateZAxis": aero_hand_rotate_z.default_config,
     "XleoMassage": xleo_massage.default_config,
     "XleoMassage2": xleo_massage2.default_config,
+    "XleoMassage3": xleo_massage3.default_config,
 }
 
 _randomizer = {
@@ -81,6 +84,7 @@ _randomizer = {
     "AeroCubeRotateZAxis": aero_hand_rotate_z.domain_randomize,
     "XleoMassage": xleo_massage.domain_randomize,
     "XleoMassage2": xleo_massage2.domain_randomize,
+    "XleoMassage3": xleo_massage3.domain_randomize,
 }
 
 

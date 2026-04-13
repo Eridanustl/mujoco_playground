@@ -70,14 +70,16 @@
       <joint name="J_LINK_HAND_BASE_L_YAW" type="hinge" axis="0 0 1" range="-1.57 1.57" damping="0.5" armature="0.005"/>
       <geom class="visual" quat="0.707105 0.707108 0 0" mesh="LINK_HAND_BASE_L" rgba="1 1 1 1"/>
       <!-- <geom class="collision" quat="0.707105 0.707108 0 0" mesh="LINK_HAND_BASE_L_convex"/> -->
-      <geom class="collision" type="box" pos="0.06 -0.01 0" size="0.045 0.012 0.025"/>
+      <!-- <geom class="collision" type="box" pos="0.06 0.003 0" size="0.045 0.025 0.025"/> -->
+      <geom class="collision" type="capsule" pos="0.06 0.003 0.0235" quat="0.707 0 0.707 0" size="0.023 0.025"/>
+      <geom class="collision" type="capsule" pos="0.06 0.003 -0.0235" quat="0.707 0 0.707 0" size="0.023 0.025"/>
       <site name="site_L_WRIST" type="sphere" size="0.001" rgba="1 0 0 1" />
       <body name="LINK_F0_L0" pos="0.021499 -0.0208651 0.0224999" quat="-2.59734e-06 0.707105 0 0.707108">
         <inertial pos="-3.617e-05 0 -0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06"/>
         <joint name="J_F0_L0" class="finger_joint" pos="0 0 0" axis="0 0 1" range="0 1.9199"/>
         <geom class="visual" mesh="LINK_F0_L0"/>
         <!-- <geom class="collision" mesh="LINK_F0_L0_convex"/> -->
-        <geom class="collision" type="capsule" pos="-0.03 0 0" quat="0.707 0 0.707 0" size="0.014 0.03"/>
+        <!-- <geom class="collision" type="capsule" pos="-0.03 0 0" quat="0.707 0 0.707 0" size="0.014 0.03"/> -->
         <site name="site_F0_L0" size="0.001"/>
         <body name="LINK_F0_L1" quat="0.707105 0.707108 0 0">
           <inertial pos="0.0375062 -8.894e-05 0.0001648" quat="0.511508 0.483488 0.515615 0.48861" mass="0.0688816" diaginertia="2.05529e-05 2.00084e-05 6.49879e-06"/>
@@ -141,7 +143,7 @@
     </body>
 
     <!-- Right hand -->
-    <body name="R_WRIST" pos="0 -0.08 0.0">
+    <body name="R_WRIST" pos="0 -0.08 -0.02">
       <inertial pos="0.0475989 0.0039991 0.000164171" quat="0.0859322 0.650312 -0.0305688 0.754172" mass="0.5904" diaginertia="0.000777544 0.000589813 0.000437273"/>
       <joint name="J_LINK_HAND_BASE_R_X" type="slide" axis="1 0 0" range="-0.2 0.2" damping="2.0" armature="0.05"/>
       <joint name="J_LINK_HAND_BASE_R_Y" type="slide" axis="0 1 0" range="-0.2 0.2" damping="2.0" armature="0.05"/>
@@ -151,14 +153,16 @@
       <joint name="J_LINK_HAND_BASE_R_YAW" type="hinge" axis="0 0 1" range="-1.57 1.57" damping="0.5" armature="0.005"/>
       <geom class="visual" quat="0.707105 -0.707108 0 0" mesh="LINK_HAND_BASE_R" rgba="1 1 1 1"/>
       <!-- <geom class="collision" quat="0.707105 -0.707108 0 0" mesh="LINK_HAND_BASE_R_convex"/> -->
-      <geom class="collision" type="box" pos="0.06 0.01 0" size="0.045 0.012 0.025"/>
+      <!-- <geom class="collision" type="box" pos="0.06 0.01 0" size="0.045 0.012 0.025"/> -->
+      <geom class="collision" type="capsule" pos="0.06 0.003 0.0235" quat="0.707 0 0.707 0" size="0.023 0.025"/>
+      <geom class="collision" type="capsule" pos="0.06 0.003 -0.0235" quat="0.707 0 0.707 0" size="0.023 0.025"/>
       <site name="site_R_WRIST" type="sphere" size="0.001" rgba="1 0 0 1"/>
       <body name="LINK_F0_R0" pos="0.021499 0.0208651 0.0224999" quat="0.707105 0 -0.707108 2.59735e-06">
         <inertial pos="-3.617e-05 0 0.00084515" mass="0.026087" diaginertia="1.92e-06 1.52e-06 1.22e-06"/>
         <joint name="J_F0_R0" class="finger_joint" pos="0 0 0" axis="0 0 1" range="0 1.9199"/>
         <geom class="visual" mesh="LINK_F0_L0"/>
         <!-- <geom class="collision" mesh="LINK_F0_L0_convex"/> -->
-        <geom class="collision" type="capsule" pos="-0.03 0 0" quat="0.707 0 0.707 0" size="0.014 0.03"/>
+        <!-- <geom class="collision" type="capsule" pos="-0.03 0 0" quat="0.707 0 0.707 0" size="0.014 0.03"/> -->
         <site name="site_F0_R0" size="0.001"/>
         <body name="LINK_F0_R1" quat="0.707105 -0.707108 0 0">
           <inertial pos="0.0375062 -8.894e-05 -0.0001648" quat="0.483488 0.511508 0.48861 0.515615" mass="0.0688816" diaginertia="2.05529e-05 2.00084e-05 6.49879e-06"/>

@@ -1,102 +1,157 @@
-import os
-import sys
+"""Forward-kinematics test for the XLEO dual hand using MuJoCo.
 
-# ROS Jazzy pollutes PYTHONPATH and LD_LIBRARY_PATH with paths that contain
-# an old pinocchio/eigenpy compiled against NumPy 1.x, causing crashes.
-# We clean them and re-exec if needed, so the dynamic linker sees only the
-# uv-installed libraries.
-_ROS_FILTER = "/opt/ros"
-
-def _needs_clean() -> bool:
-    for var in ("PYTHONPATH", "LD_LIBRARY_PATH"):
-        val = os.environ.get(var, "")
-        if _ROS_FILTER in val:
-            return True
-    return any(_ROS_FILTER in p for p in sys.path)
-
-if _needs_clean():
-    for var in ("PYTHONPATH", "LD_LIBRARY_PATH"):
-        val = os.environ.get(var, "")
-        cleaned = ":".join(p for p in val.split(":") if p and _ROS_FILTER not in p)
-        os.environ[var] = cleaned
-    os.execv(sys.executable, [sys.executable] + sys.argv)
+Computes fingertip positions in world frame for a given qpos.
+"""
+from __future__ import annotations
 
 import time
 from pathlib import Path
 
+import mujoco
 import numpy as np
-import pinocchio
 
-def main():
-    # URDF file path
-    urdf_path = (
-        Path(__file__).resolve().parent.parent
-        / "models"
-        / "urdf"
-        / "ftl_xleo_dual_hand.urdf"
+# ── XML path ─────────────────────────────────────────────────────────────────
+XML_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "models" / "xmls" / "ftl_xleo_dual_hand.xml"
+)
+
+# ── Fingertip definitions ────────────────────────────────────────────────────
+# For F1/F2 fingers, the MuJoCo XML already defines tip sites with a 5 cm
+# offset from the last link frame.  For F0 (thumb) there is no tip site, so
+# we use the body frame of LINK_F0_*2 directly.
+#
+# Format: (human-readable name, site_or_body_name, is_site)
+FINGERTIP_DEFS: list[tuple[str, str, bool]] = [
+    ("left_hand_base",   "L_WRIST",            False),  # hand base (body)
+    ("left_thumb_tip",   "LINK_F0_L2",         False),  # body (no tip site)
+    ("left_index_tip",   "site_left_f1_tip",   True),
+    ("left_middle_tip",  "site_left_f2_tip",   True),
+    ("right_hand_base",  "R_WRIST",            False),  # hand base (body)
+    ("right_thumb_tip",  "LINK_F0_R2",         False),  # body (no tip site)
+    ("right_index_tip",  "site_right_f1_tip",  True),
+    ("right_middle_tip", "site_right_f2_tip",  True),
+]
+
+
+def _load_model() -> tuple[mujoco.MjModel, mujoco.MjData]:
+    """Load the MuJoCo model and create data."""
+    xml = str(XML_PATH)
+    print(f"XML: {xml}")
+    model = mujoco.MjModel.from_xml_path(xml)
+    data = mujoco.MjData(model)
+    return model, data
+
+
+def compute_fingertip_positions(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    qpos: np.ndarray,
+) -> dict[str, np.ndarray]:
+    """Set qpos, run forward kinematics, and return fingertip world positions.
+
+    Args:
+        model: MuJoCo model.
+        data:  MuJoCo data.
+        qpos:  Joint configuration vector (length 28).
+
+    Returns:
+        Dict mapping fingertip name -> (3,) world-frame position.
+    """
+    assert qpos.shape[0] == model.nq, (
+        f"qpos length {qpos.shape[0]} != model.nq {model.nq}"
     )
-    urdf_filename = str(urdf_path)
-    print(f"URDF: {urdf_filename}")
+    data.qpos[:] = qpos
+    mujoco.mj_forward(model, data)  # full forward pass (kinematics + dynamics)
 
-    # Build model with floating base (free-flyer)
-    model = pinocchio.buildModelFromUrdf(urdf_filename, pinocchio.JointModelFreeFlyer())
-    data = model.createData()
+    results: dict[str, np.ndarray] = {}
+    for tip_name, mj_name, is_site in FINGERTIP_DEFS:
+        if is_site:
+            site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, mj_name)
+            pos = data.site_xpos[site_id].copy()
+        else:
+            body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, mj_name)
+            pos = data.xpos[body_id].copy()
+        results[tip_name] = pos
 
-    # Build model with fixed base
-    model_fixed = pinocchio.buildModelFromUrdf(urdf_filename)
-    data_fixed = model_fixed.createData()
+    return results
 
-    # Print model info
-    print(f"model name: {model.name}")
-    print(f"pino_model.nq: {model.nq}")
-    print(f"pino_model.nv: {model.nv}")
-    print(f"pino_model.njoints: {model.njoints}")
-    print(f"pino_model.nbodies: {model.nbodies}")
 
-    # Calculate the Mass Matrix
-    q = pinocchio.neutral(model)
-    q_fixed = pinocchio.neutral(model_fixed)
+# ── Model inspection (original functionality) ────────────────────────────────
+
+def inspect_model():
+    """Print model info: joints, bodies, mass, joint positions at q=0."""
+    model, data = _load_model()
+
+    print(f"model name : {model.opt.timestep}")
+    print(f"nq         : {model.nq}")
+    print(f"nv         : {model.nv}")
+    print(f"njnt       : {model.njnt}")
+    print(f"nbody      : {model.nbody}")
+
+    # Set to zero config and run FK
+    data.qpos[:] = 0.0
+    mujoco.mj_forward(model, data)
+
+    # Total mass
+    total_mass = sum(model.body_mass)
+    print(f"Total Mass : {total_mass:.4f}")
+
+    # Print joint names + qpos index
+    print("\n--- Joints ---")
+    for i in range(model.njnt):
+        jnt = model.joint(i)
+        print(f"  joint[{i:>2}] qpos[{model.jnt_qposadr[i]:>2}]  {jnt.name}")
+
+    # Print body positions at zero config
+    print("\n--- Body positions (q=0) ---")
+    for i in range(model.nbody):
+        name = model.body(i).name
+        pos = data.xpos[i]
+        print(f"  body[{i:>2}] {name:<24} x={pos[0]:>8.4f}  y={pos[1]:>8.4f}  z={pos[2]:>8.4f}")
+
+
+# ── Fingertip FK demo ────────────────────────────────────────────────────────
+
+def demo_fingertip_fk():
+    """Compute and print fingertip positions for a given qpos."""
+    model, data = _load_model()
+
+    # 28-DOF qpos (fixed base)
+    # Left hand  [0..13]:  wrist(5) + F0(3) + F1(3) + F2(3)
+    # Right hand [14..27]: wrist(5) + F0(3) + F1(3) + F2(3)
+    qpos = np.array([
+        # ── left hand ──
+        0.0, -0.02, 0, 0, 0,           # left wrist (5 DOF)
+        0, 0, 0,                        # left thumb  F0 (3 DOF)
+        1.05, 0.2, 0.76,               # left index  F1 (3 DOF)
+        1.05, 0, 0.76,                 # left middle F2 (3 DOF)
+        # ── right hand ──
+        0, 0.02, 0, 0, 0,              # right wrist (5 DOF)
+        0, 0, 0,                        # right thumb  F0 (3 DOF)
+        1.05, 0, 0.76,                 # right index  F1 (3 DOF)
+        1.05, -0.2, 0.76,              # right middle F2 (3 DOF)
+    ])
 
     start = time.perf_counter()
-    pinocchio.crba(model, data, q)
-    pinocchio.crba(model_fixed, data_fixed, q_fixed)
-    pinocchio.forwardKinematics(model, data, q)
-    pinocchio.forwardKinematics(model_fixed, data_fixed, q_fixed)
-    pinocchio.centerOfMass(model, data, q)
-    end = time.perf_counter()
+    tips = compute_fingertip_positions(model, data, qpos)
+    elapsed = time.perf_counter() - start
 
-    print(f"Total Mass: {data.mass[0]}")
-    print(f"运行时间：{(end - start) * 1000:.3f}毫秒")
+    print(f"\n{'=' * 60}")
+    print(f"  指尖位置（世界坐标系） — 计算耗时: {elapsed * 1000:.3f} ms")
+    print(f"{'=' * 60}")
+    print(f"  {'名称':<24} {'X':>10} {'Y':>10} {'Z':>10}")
+    print(f"  {'-' * 56}")
+    for name, pos in tips.items():
+        print(f"  {name:<24} {pos[0]:>10.4f} {pos[1]:>10.4f} {pos[2]:>10.4f}")
+    print(f"{'=' * 60}")
 
-    # Print initial q for floating base model
-    print("\nInitial q for floating base model:")
-    for i in range(model.nq):
-        print(f"{i}\t :\t{q[i]}")
+    return tips
 
-    # Print initial q for fixed base model
-    print("Initial q for fixed base model:")
-    for i in range(model_fixed.nq):
-        print(f"{i} :\t{q_fixed[i]}")
 
-    # Print joint placements for floating base model
-    print("\n--- Floating base model joints ---")
-    for joint_id in range(model.njoints):
-        name = model.names[joint_id]
-        trans = data.oMi[joint_id].translation
-        print(f"{joint_id:<24} {name} {trans[0]:.3f} {trans[1]:.3f} {trans[2]:.3f}")
-
-    for joint_id in range(model.njoints):
-        print(f"{model.names[joint_id]},")
-
-    # Print joint placements for fixed base model
-    print("\n--- Fixed base model joints ---")
-    for joint_id in range(model_fixed.njoints):
-        name = model_fixed.names[joint_id]
-        trans = data_fixed.oMi[joint_id].translation
-        print(f"{joint_id:<24} {name} {trans[0]:.3f} {trans[1]:.3f} {trans[2]:.3f}")
-
-    for joint_id in range(model_fixed.njoints):
-        print(f"{model_fixed.names[joint_id]},")
+def main():
+    inspect_model()
+    demo_fingertip_fk()
 
 
 if __name__ == "__main__":
