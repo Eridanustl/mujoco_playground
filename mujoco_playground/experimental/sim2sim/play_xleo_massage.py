@@ -67,7 +67,7 @@ FINGER_KP = 3.0  # Finger joints
 FINGER_KD = 0.1
 
 # --- Expert trajectory ---
-TRAJ_PATH = consts.DATA_PATH / "massage_data_mink.pkl"
+TRAJ_PATH = consts.DATA_PATH / "massage_data_mink2.pkl"
 
 # --- Future target observation steps ---
 TARGET_OBS_STEPS = [1, 2, 3]

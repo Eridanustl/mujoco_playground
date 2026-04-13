@@ -426,7 +426,10 @@ def main():
 
   print(f"\n完成！ONNX 模型已保存到: {args.output}")
   print("可复制到 sim2sim/onnx/ 并运行:")
-  print("  python play_xleo_massage.py")
+  print(
+      f"  python mujoco_playground/experimental/sim2sim/play_xleo_massage.py"
+      f" --model_dir"
+  )
 
 
 if __name__ == "__main__":
