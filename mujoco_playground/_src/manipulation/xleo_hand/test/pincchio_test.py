@@ -17,18 +17,17 @@ XML_PATH = (
 )
 
 # ── Fingertip definitions ────────────────────────────────────────────────────
-# For F1/F2 fingers, the MuJoCo XML already defines tip sites with a 5 cm
-# offset from the last link frame.  For F0 (thumb) there is no tip site, so
-# we use the body frame of LINK_F0_*2 directly.
+# All fingertips use tip sites defined in the MuJoCo XML with a 5 cm offset
+# from the last link frame.
 #
 # Format: (human-readable name, site_or_body_name, is_site)
 FINGERTIP_DEFS: list[tuple[str, str, bool]] = [
     ("left_hand_base",   "L_WRIST",            False),  # hand base (body)
-    ("left_thumb_tip",   "LINK_F0_L2",         False),  # body (no tip site)
+    ("left_thumb_tip",   "site_left_f0_tip",   True),   # tip site
     ("left_index_tip",   "site_left_f1_tip",   True),
     ("left_middle_tip",  "site_left_f2_tip",   True),
     ("right_hand_base",  "R_WRIST",            False),  # hand base (body)
-    ("right_thumb_tip",  "LINK_F0_R2",         False),  # body (no tip site)
+    ("right_thumb_tip",  "site_right_f0_tip",  True),   # tip site
     ("right_index_tip",  "site_right_f1_tip",  True),
     ("right_middle_tip", "site_right_f2_tip",  True),
 ]

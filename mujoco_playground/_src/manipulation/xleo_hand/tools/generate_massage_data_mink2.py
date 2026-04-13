@@ -3,6 +3,7 @@
 Trajectory description:
   - Left wrist Y:  0.06 → 0.04   (squeeze inward)
   - Right wrist Y: -0.06 → -0.04 (squeeze inward)
+  - Wrist orientation (RPY) interpolated between init and end targets.
   - Left index (lf1) X:  0.1136 → 0.0836  (pull back)
   - Right middle (rf2) X: 0.1136 → 0.0836  (pull back)
   - All other fingertip targets stay fixed.
@@ -26,6 +27,7 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 from etils import epath
+from scipy.spatial.transform import Rotation
 
 import mink
 
@@ -37,41 +39,74 @@ logger = logging.getLogger(__name__)
 _HERE = Path(__file__).parent.parent
 _XML = _HERE / "models" / "xmls" / "ftl_xleo_dual_hand_position.scene.xml"
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Configuration (edit here)
+# ═══════════════════════════════════════════════════════════════════════════════
+
 # IK solver parameters.
 SOLVER = "daqp"
 POS_THRESHOLD = 1e-4
 ORI_THRESHOLD = 1e-4
 MAX_ITERS = 20
 
-# ── Initial target positions (from mink_test.py) ─────────────────────────────
+# Feature switches.
+ENABLE_THUMB = False  # 是否启用大拇指 (lf0/rf0) 轨迹规划
+
+# Initial target positions (from mink_test.py).
+# Finger targets: [x, y, z] (position only)
+# Wrist targets:  [x, y, z, roll, pitch, yaw] (position + euler angles in rad)
 INIT_TARGET_POSITIONS = {
+    "lf0": np.array([0.0215, 0.0391, 0.1267]),
     "lf1": np.array([0.1136, -0.0347, 0.0393]),
     "lf2": np.array([0.1145, -0.0362, -0.0225]),
+    "rf0": np.array([0.0215, -0.0391, 0.1067]),
     "rf1": np.array([0.1145, 0.0362, 0.0025]),
     "rf2": np.array([0.1136, 0.0347, -0.0593]),
-    "lw": np.array([0.0, 0.06, 0.0]),
-    "rw": np.array([0.0, -0.06, -0.02]),
+    "lw": np.array([0.0, 0.06, 0.0, 0.0, 0.0, 0.0]),
+    "rw": np.array([0.0, -0.06, -0.02, 0.0, 0.0, 0.0]),
 }
 
-# ── End target positions ──────────────────────────────────────────────────────
 END_TARGET_POSITIONS = {
-    "lf1": np.array([0.0836, -0.0347, 0.0393]),  # X: 0.1136 → 0.0836
-    "lf2": np.array([0.1145, -0.0362, -0.0225]),  # unchanged
-    "rf1": np.array([0.1145, 0.0362, 0.0025]),  # unchanged
-    "rf2": np.array([0.0836, 0.0347, -0.0593]),  # X: 0.1136 → 0.0836
-    "lw": np.array([0.0, 0.04, 0.0]),  # Y: 0.06 → 0.04
-    "rw": np.array([0.0, -0.04, -0.02]),  # Y: -0.06 → -0.04
+    "lf0": np.array([0.0215, 0.0391, 0.1267]),
+    "lf1": np.array([0.0736, -0.0547, 0.0393]),
+    "lf2": np.array([0.0745, -0.0562, -0.0225]),
+    "rf0": np.array([0.0215, -0.0391, 0.1067]),
+    "rf1": np.array([0.0745, 0.0562, 0.0025]),
+    "rf2": np.array([0.0736, 0.0547, -0.0593]),
+    "lw": np.array([0.0, 0.04, 0.0, 0.0, 0.0, 0.0]),
+    "rw": np.array([0.0, -0.04, -0.02, 0.0, 0.0, 0.0]),
 }
+
+# IK task definitions: (key, site_name, position_cost, orientation_cost, is_thumb)
+TASK_DEFS = [
+    ("lf0", "site_left_f0_tip", 1.0, 0.0, True),
+    ("lf1", "site_left_f1_tip", 1.0, 0.0, False),
+    ("lf2", "site_left_f2_tip", 1.0, 0.0, False),
+    ("rf0", "site_right_f0_tip", 1.0, 0.0, True),
+    ("rf1", "site_right_f1_tip", 1.0, 0.0, False),
+    ("rf2", "site_right_f2_tip", 1.0, 0.0, False),
+    ("lw", "site_L_WRIST", 1.0, [1, 1, 1], False),
+    ("rw", "site_R_WRIST", 1.0, [1, 1, 1], False),
+]
 
 # RGBA colors for viewer visualization.
 TARGET_COLORS = {
+    "lf0": [1, 0.5, 0, 0.2],
     "lf1": [1, 0, 0, 0.2],
     "lf2": [1, 0, 0, 0.2],
+    "rf0": [0, 0.5, 1, 0.2],
     "rf1": [0, 0, 1, 0.2],
     "rf2": [0, 0, 1, 0.2],
     "lw": [0, 1, 0, 0.2],
     "rw": [0, 1, 0, 0.2],
 }
+
+# Keys that have 6D targets (position + rpy).
+WRIST_KEYS = {"lw", "rw"}
+
+# Keys for thumb targets.
+THUMB_KEYS = {"lf0", "rf0"}
 
 # Joints whose lower bound is overridden to 0 (positive angles only).
 POSITIVE_JOINTS = ["J_F1_L0", "J_F2_L0", "J_F1_R0", "J_F2_R0"]
@@ -79,11 +114,6 @@ POSITIVE_JOINTS = ["J_F1_L0", "J_F2_L0", "J_F1_R0", "J_F2_R0"]
 # F1/F2 L2 joints need a positive initial value to avoid singularity.
 L2_JOINTS = ["J_F1_L2", "J_F2_L2", "J_F1_R2", "J_F2_R2"]
 L2_INIT_ANGLE = np.deg2rad(30)
-
-
-# ---------------------------------------------------------------------------
-# Config
-# ---------------------------------------------------------------------------
 
 
 @dataclass
@@ -94,9 +124,98 @@ class MinkMassageConfig:
   warmup_periods: int = 5  # warmup before recording
 
 
-# ---------------------------------------------------------------------------
-# Waveform helper
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════════
+# IK solver context
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class IKContext:
+  """Bundles MuJoCo model/data with mink IK solver state."""
+
+  def __init__(self, cfg: MinkMassageConfig):
+    self.cfg = cfg
+    self.model = mujoco.MjModel.from_xml_path(_XML.as_posix())
+    self.data = mujoco.MjData(self.model)
+
+    # Override joint limits.
+    for jname in POSITIVE_JOINTS:
+      jid = self.model.joint(jname).id
+      self.model.jnt_range[jid][0] = 0.0
+
+    # Build mink configuration and tasks.
+    self.configuration = mink.Configuration(self.model)
+    self.tasks, self.task_map = self._build_tasks()
+    self.posture_task = self.tasks["posture"]
+    self.limits = [mink.ConfigurationLimit(model=self.model)]
+    self.dt = 1.0 / cfg.data_freq
+
+    # Joint index mapping: IK model → consts.JOINT_NAMES.
+    self.ik_to_consts_idx = []
+    for i in range(self.model.njnt):
+      jname = self.model.joint(i).name
+      if jname in consts.JOINT_NAME_TO_INDEX:
+        self.ik_to_consts_idx.append(
+            (self.model.jnt_qposadr[i], consts.JOINT_NAME_TO_INDEX[jname])
+        )
+
+  def _build_tasks(self):
+    """Create IK tasks from TASK_DEFS table."""
+    task_map = {}
+    for key, site, pos_cost, ori_cost, is_thumb in TASK_DEFS:
+      if is_thumb and not ENABLE_THUMB:
+        continue
+      task_map[key] = mink.FrameTask(
+          frame_name=site,
+          frame_type="site",
+          position_cost=pos_cost,
+          orientation_cost=ori_cost,
+          lm_damping=0.1,
+      )
+    posture_task = mink.PostureTask(model=self.model, cost=1e-3)
+    all_tasks = {**task_map, "posture": posture_task}
+    return all_tasks, task_map
+
+  def reset(self):
+    """Reset to home keyframe and seed L2 joints."""
+    mujoco.mj_resetDataKeyframe(
+        self.model, self.data, self.model.key("home").id
+    )
+    for jname in L2_JOINTS:
+      jid = self.model.joint(jname).id
+      self.data.qpos[self.model.jnt_qposadr[jid]] = L2_INIT_ANGLE
+    self.configuration.update(self.data.qpos)
+    self.posture_task.set_target_from_configuration(self.configuration)
+    mujoco.mj_forward(self.model, self.data)
+
+  def step(self, t: float):
+    """Set targets for time t, solve IK, integrate, and step physics."""
+    targets = compute_targets(t, self.cfg)
+    for key, task in self.task_map.items():
+      _set_task_target(task, targets[key], key)
+
+    vel = mink.solve_ik(
+        self.configuration,
+        self.tasks.values(),
+        self.dt,
+        SOLVER,
+        damping=1e-3,
+        limits=self.limits,
+    )
+    self.configuration.integrate_inplace(vel, self.dt)
+    self.data.ctrl = self.configuration.q
+    mujoco.mj_step(self.model, self.data)
+
+  def extract_q(self) -> np.ndarray:
+    """Extract the 28 joint values from the IK configuration."""
+    q = np.zeros(consts.NQ)
+    for ik_idx, consts_idx in self.ik_to_consts_idx:
+      q[consts_idx] = self.configuration.q[ik_idx]
+    return q
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Helpers
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def _halfcos(vstart: float, vend: float, omega: float, t: float) -> float:
@@ -104,9 +223,22 @@ def _halfcos(vstart: float, vend: float, omega: float, t: float) -> float:
   return vstart + (vend - vstart) * (1.0 - np.cos(omega * t)) / 2.0
 
 
-# ---------------------------------------------------------------------------
-# Project root helper
-# ---------------------------------------------------------------------------
+def _rpy_to_so3(rpy: np.ndarray) -> "mink.SO3":
+  """Convert roll-pitch-yaw (xyz extrinsic) to mink.SO3 quaternion."""
+  quat_xyzw = Rotation.from_euler("xyz", rpy).as_quat()  # [x,y,z,w]
+  quat_wxyz = np.array(
+      [quat_xyzw[3], quat_xyzw[0], quat_xyzw[1], quat_xyzw[2]]
+  )
+  return mink.SO3(wxyz=quat_wxyz)
+
+
+def _set_task_target(task, target: np.ndarray, key: str):
+  """Set IK task target with rotation for wrists, translation-only for fingers."""
+  if key in WRIST_KEYS:
+    so3 = _rpy_to_so3(target[3:6])
+    task.set_target(mink.SE3.from_rotation_and_translation(so3, target[:3]))
+  else:
+    task.set_target(mink.SE3.from_translation(target))
 
 
 def _project_root() -> Path:
@@ -118,105 +250,28 @@ def _project_root() -> Path:
   raise RuntimeError("Cannot find project root (no .git found)")
 
 
-# ---------------------------------------------------------------------------
-# Build mink tasks
-# ---------------------------------------------------------------------------
-
-
-def _build_tasks(model, configuration):
-  """Create all IK tasks and return (tasks_dict, task_name_to_task, posture_task, limits)."""
-  config_limit = mink.ConfigurationLimit(model=model)
-
-  left_finger1_tip_task = mink.FrameTask(
-      frame_name="site_left_f1_tip",
-      frame_type="site",
-      position_cost=1.0,
-      orientation_cost=0.0,
-      lm_damping=0.1,
-  )
-  left_finger2_tip_task = mink.FrameTask(
-      frame_name="site_left_f2_tip",
-      frame_type="site",
-      position_cost=1.0,
-      orientation_cost=0.0,
-      lm_damping=0.1,
-  )
-  right_finger1_tip_task = mink.FrameTask(
-      frame_name="site_right_f1_tip",
-      frame_type="site",
-      position_cost=1.0,
-      orientation_cost=0.0,
-      lm_damping=0.1,
-  )
-  right_finger2_tip_task = mink.FrameTask(
-      frame_name="site_right_f2_tip",
-      frame_type="site",
-      position_cost=1.0,
-      orientation_cost=0.0,
-      lm_damping=0.1,
-  )
-  left_wrist_task = mink.FrameTask(
-      frame_name="site_L_WRIST",
-      frame_type="site",
-      position_cost=1.0,
-      orientation_cost=[1, 1, 1],
-      lm_damping=0.1,
-  )
-  right_wrist_task = mink.FrameTask(
-      frame_name="site_R_WRIST",
-      frame_type="site",
-      position_cost=1.0,
-      orientation_cost=[1, 1, 1],
-      lm_damping=0.1,
-  )
-  posture_task = mink.PostureTask(model=model, cost=1e-3)
-
-  tasks = {
-      "lf1": left_finger1_tip_task,
-      "lf2": left_finger2_tip_task,
-      "rf1": right_finger1_tip_task,
-      "rf2": right_finger2_tip_task,
-      "lw": left_wrist_task,
-      "rw": right_wrist_task,
-      "posture": posture_task,
-  }
-  task_name_to_task = {
-      "lf1": left_finger1_tip_task,
-      "lf2": left_finger2_tip_task,
-      "rf1": right_finger1_tip_task,
-      "rf2": right_finger2_tip_task,
-      "lw": left_wrist_task,
-      "rw": right_wrist_task,
-  }
-  return tasks, task_name_to_task, posture_task, [config_limit]
-
-
-# ---------------------------------------------------------------------------
-# Compute target positions at time t
-# ---------------------------------------------------------------------------
-
-
-def _compute_targets(t: float, cfg: MinkMassageConfig) -> dict:
+def compute_targets(t: float, cfg: MinkMassageConfig) -> dict:
   """Return interpolated target positions for all tasks at time t.
 
-  Each target channel oscillates between its INIT and END value using
-  a half-cosine waveform with the configured period.
+  Each channel oscillates between INIT and END via half-cosine waveform.
+  Finger targets are 3D (xyz). Wrist targets are 6D (xyz + rpy).
+  Thumb targets (lf0/rf0) are skipped when ENABLE_THUMB is False.
   """
   omega = 2.0 * np.pi / cfg.period
   targets = {}
-  for key in INIT_TARGET_POSITIONS:
-    start = INIT_TARGET_POSITIONS[key]
+  for key, start in INIT_TARGET_POSITIONS.items():
+    if not ENABLE_THUMB and key in THUMB_KEYS:
+      continue
     end = END_TARGET_POSITIONS[key]
-    # Per-component half-cosine interpolation.
     targets[key] = np.array(
-        [_halfcos(start[i], end[i], omega, t) for i in range(3)]
+        [_halfcos(start[i], end[i], omega, t) for i in range(len(start))]
     )
   return targets
 
 
-# ---------------------------------------------------------------------------
-# FK precomputation (reused from generate_massage_data_mink.py)
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════════
+# FK precomputation
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def _get_assets():
@@ -304,80 +359,17 @@ def precompute_body_xpos(data: dict) -> dict:
   return data
 
 
-# ---------------------------------------------------------------------------
-# IK trajectory generation (headless)
-# ---------------------------------------------------------------------------
-
-
-def _extract_q(configuration, ik_to_consts_idx) -> np.ndarray:
-  """Extract the 28 joint values from the IK configuration."""
-  q = np.zeros(consts.NQ)
-  for ik_idx, consts_idx in ik_to_consts_idx:
-    q[consts_idx] = configuration.q[ik_idx]
-  return q
-
-
-def _reset_sim(model, data, configuration, posture_task):
-  """Reset to home keyframe and seed L2 joints."""
-  mujoco.mj_resetDataKeyframe(model, data, model.key("home").id)
-  for jname in L2_JOINTS:
-    jid = model.joint(jname).id
-    data.qpos[model.jnt_qposadr[jid]] = L2_INIT_ANGLE
-  configuration.update(data.qpos)
-  posture_task.set_target_from_configuration(configuration)
-  mujoco.mj_forward(model, data)
-
-
-def _step_ik(
-    model, configuration, tasks, task_name_to_task, limits, data, t, dt, cfg
-):
-  """Set targets for time t, solve IK, integrate, and step physics."""
-  targets = _compute_targets(t, cfg)
-  for key, task in task_name_to_task.items():
-    task.set_target(mink.SE3.from_translation(targets[key]))
-
-  vel = mink.solve_ik(
-      configuration,
-      tasks.values(),
-      dt,
-      SOLVER,
-      damping=1e-3,
-      limits=limits,
-  )
-  configuration.integrate_inplace(vel, dt)
-
-  data.ctrl = configuration.q
-  mujoco.mj_step(model, data)
+# ═══════════════════════════════════════════════════════════════════════════════
+# Trajectory generation (headless)
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def generate(cfg: MinkMassageConfig) -> dict:
   """Solve IK at each timestep and record qpos/qvel trajectories."""
-  model = mujoco.MjModel.from_xml_path(_XML.as_posix())
-  data = mujoco.MjData(model)
+  ctx = IKContext(cfg)
+  ctx.reset()
 
-  for jname in POSITIVE_JOINTS:
-    jid = model.joint(jname).id
-    model.jnt_range[jid][0] = 0.0
-
-  configuration = mink.Configuration(model)
-  tasks, task_name_to_task, posture_task, limits = _build_tasks(
-      model, configuration
-  )
-
-  _reset_sim(model, data, configuration, posture_task)
-
-  dt = 1.0 / cfg.data_freq
-
-  # Map from IK model joint names to consts.JOINT_NAMES indices.
-  ik_to_consts_idx = []
-  for i in range(model.njnt):
-    jname = model.joint(i).name
-    if jname in consts.JOINT_NAME_TO_INDEX:
-      ik_to_consts_idx.append(
-          (model.jnt_qposadr[i], consts.JOINT_NAME_TO_INDEX[jname])
-      )
-
-  # --- Warmup phase ---
+  # Warmup phase.
   warmup_duration = cfg.warmup_periods * cfg.period
   warmup_steps = int(warmup_duration * cfg.data_freq)
   print(
@@ -385,44 +377,21 @@ def generate(cfg: MinkMassageConfig) -> dict:
       f"({warmup_steps} steps, {warmup_duration:.1f}s) ..."
   )
   for step in range(warmup_steps):
-    t = step * dt
-    _step_ik(
-        model,
-        configuration,
-        tasks,
-        task_name_to_task,
-        limits,
-        data,
-        t,
-        dt,
-        cfg,
-    )
+    ctx.step(step * ctx.dt)
 
-  warmup_last_q = _extract_q(configuration, ik_to_consts_idx)
-
-  # --- Recording phase ---
-  t_array = np.arange(0, cfg.duration, dt)
+  # Recording phase.
+  t_array = np.arange(0, cfg.duration, ctx.dt)
   T = len(t_array)
   qpos_traj = np.zeros((T, consts.NQ), dtype=np.float64)
   qvel_traj = np.zeros((T, consts.NQ), dtype=np.float64)
 
-  prev_q = warmup_last_q
+  prev_q = ctx.extract_q()
   for step, t in enumerate(t_array):
-    _step_ik(
-        model,
-        configuration,
-        tasks,
-        task_name_to_task,
-        limits,
-        data,
-        t,
-        dt,
-        cfg,
-    )
+    ctx.step(t)
 
-    q_frame = _extract_q(configuration, ik_to_consts_idx)
+    q_frame = ctx.extract_q()
     qpos_traj[step] = q_frame
-    qvel_traj[step] = (q_frame - prev_q) / dt
+    qvel_traj[step] = (q_frame - prev_q) / ctx.dt
     prev_q = q_frame.copy()
 
     if (step + 1) % int(cfg.data_freq) == 0:
@@ -439,26 +408,16 @@ def generate(cfg: MinkMassageConfig) -> dict:
   }
 
 
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════════
 # Visualize mode (interactive viewer)
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def visualize(cfg: MinkMassageConfig):
   """Run IK in an interactive viewer for previewing the trajectory."""
   from loop_rate_limiters import RateLimiter
 
-  model = mujoco.MjModel.from_xml_path(_XML.as_posix())
-  data = mujoco.MjData(model)
-
-  for jname in POSITIVE_JOINTS:
-    jid = model.joint(jname).id
-    model.jnt_range[jid][0] = 0.0
-
-  configuration = mink.Configuration(model)
-  tasks, task_name_to_task, posture_task, limits = _build_tasks(
-      model, configuration
-  )
+  ctx = IKContext(cfg)
 
   paused = False
   should_reset = False
@@ -466,32 +425,31 @@ def visualize(cfg: MinkMassageConfig):
   running = True
   sim_time = 0.0
 
-  def reset_sim():
+  def reset():
     nonlocal sim_time
-    _reset_sim(model, data, configuration, posture_task)
+    ctx.reset()
     sim_time = 0.0
 
   def key_callback(keycode):
     nonlocal paused, should_reset, step_once, running
-    if keycode == 32:
+    if keycode == 32:  # Space
       paused = not paused
       print(f"{'Paused' if paused else 'Resumed'}")
-    elif keycode == 259:
+    elif keycode == 259:  # Backspace
       should_reset = True
       print("Reset")
-    elif keycode == 262:
+    elif keycode == 262:  # Right arrow
       if paused:
         step_once = True
-    elif keycode in (256, 81):
+    elif keycode in (256, 81):  # Escape / Q
       running = False
 
-  reset_sim()
-  dt = 1.0 / cfg.data_freq
+  reset()
 
   with mujoco.viewer.launch_passive(
-      model=model, data=data, key_callback=key_callback
+      model=ctx.model, data=ctx.data, key_callback=key_callback
   ) as viewer:
-    mujoco.mjv_defaultFreeCamera(model, viewer.cam)
+    mujoco.mjv_defaultFreeCamera(ctx.model, viewer.cam)
     rate = RateLimiter(frequency=cfg.data_freq, warn=False)
 
     def sigint_handler(sig, frame):
@@ -502,45 +460,31 @@ def visualize(cfg: MinkMassageConfig):
 
     while viewer.is_running() and running:
       if should_reset:
-        reset_sim()
+        reset()
         should_reset = False
 
       if not paused or step_once:
         step_once = False
-
-        targets = _compute_targets(sim_time, cfg)
-        for key, task in task_name_to_task.items():
-          task.set_target(mink.SE3.from_translation(targets[key]))
-
-        vel = mink.solve_ik(
-            configuration,
-            tasks.values(),
-            dt,
-            SOLVER,
-            damping=1e-3,
-            limits=limits,
-        )
-        configuration.integrate_inplace(vel, dt)
-
-        data.ctrl = configuration.q
-        mujoco.mj_step(model, data)
-        sim_time += dt
+        ctx.step(sim_time)
+        sim_time += ctx.dt
 
       # Draw target spheres.
       viewer.user_scn.ngeom = 0
-      targets = _compute_targets(sim_time, cfg)
-      for i, (key, pos) in enumerate(targets.items()):
+      targets = compute_targets(sim_time, cfg)
+      geom_count = 0
+      for key, val in targets.items():
         if key not in TARGET_COLORS:
           continue
         mujoco.mjv_initGeom(
-            viewer.user_scn.geoms[i],
+            viewer.user_scn.geoms[geom_count],
             type=mujoco.mjtGeom.mjGEOM_SPHERE,
             size=[0.008, 0, 0],
-            pos=pos,
+            pos=val[:3],
             mat=np.eye(3).flatten(),
             rgba=np.array(TARGET_COLORS[key], dtype=np.float32),
         )
-      viewer.user_scn.ngeom = len([k for k in targets if k in TARGET_COLORS])
+        geom_count += 1
+      viewer.user_scn.ngeom = geom_count
 
       viewer.sync()
       rate.sleep()
@@ -548,9 +492,9 @@ def visualize(cfg: MinkMassageConfig):
     print("\nShutting down...")
 
 
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════════
 # CLI
-# ---------------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════════════
 
 
 def main():

@@ -123,12 +123,12 @@ def main():
   parser = argparse.ArgumentParser(
       description="Kinematic visualizer for massage trajectories"
   )
-  default_pkl = str(_project_root() / "data" / "massage_data_mink.pkl")
+  default_pkl = str(_project_root() / "data" / "massage_data_mink2.pkl")
   parser.add_argument(
       "--pkl_path",
       type=str,
       default=default_pkl,
-      help="Path to trajectory pkl (default: data/massage_data_mink.pkl)",
+      help="Path to trajectory pkl (default: data/massage_data_mink2.pkl)",
   )
   parser.add_argument(
       "--speed",

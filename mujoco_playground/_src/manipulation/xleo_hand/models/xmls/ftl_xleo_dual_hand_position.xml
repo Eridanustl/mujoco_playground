@@ -93,6 +93,7 @@
             <geom class="visual" mesh="LINK_F0_L2"/>
             <!-- <geom class="collision" mesh="LINK_F0_L2_convex"/> -->
             <geom class="collision" type="capsule" pos="0.03 0 0" quat="0.707 0 0.707 0" size="0.012 0.01"/>
+            <site name="site_left_f0_tip" pos="0.05 0 0" type="sphere" size="0.001" rgba="1 0 0 1"/>
           </body>
         </body>
       </body>
@@ -176,6 +177,7 @@
             <geom class="visual" mesh="LINK_F0_L2"/>
             <!-- <geom class="collision" mesh="LINK_F0_L2_convex"/> -->
             <geom class="collision" type="capsule" pos="0.03 0 0" quat="0.707 0 0.707 0" size="0.012 0.01"/>
+            <site name="site_right_f0_tip" pos="0.05 0 0" type="sphere" size="0.001" rgba="1 0 0 1"/>
           </body>
         </body>
       </body>
